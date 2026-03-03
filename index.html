@@ -1,9 +1,19 @@
-import { useState, useRef, useEffect } from "react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Best XI Soccer</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div id="root"></div>
 
-// ═══════════════════════════════════════════════
-//  FORMATIONS
-// ═══════════════════════════════════════════════
-const FORMATIONS = [
+    <script type="text/babel">
+      const FORMATIONS = [
   { name:"3-1-4-2",   positions:["GK","CB","CB","CB","CDM","RM","CM","CM","LM","ST","ST"] },
   { name:"3-4-1-2",   positions:["GK","CB","CB","CB","RM","CM","CM","LM","CAM","ST","ST"] },
   { name:"3-4-2-1",   positions:["GK","CB","CB","CB","RM","CM","CM","LM","CAM","CAM","ST"] },
@@ -1250,10 +1260,11 @@ function drawManagerPool(usedNames, n=5){
   return [...avail].sort(()=>Math.random()-0.5).slice(0,Math.min(n,avail.length));
 }
 
-// ═══════════════════════════════════════════════
-//  SIMULATION ENGINE
-// ═══════════════════════════════════════════════
-function ratePlayer(pl, pos, manager) {
+        
+        const { useState, useRef, useEffect } = React;
+
+        function App() {
+            function ratePlayer(pl, pos, manager) {
   if (!pl) return 50;
   let base = pl.isLigaMX ? 62+Math.random()*12 : (pl.rating||70)+(Math.random()*10-5);
   if (pl.positions?.[0]===bp(pos)) base+=8;
@@ -1940,3 +1951,16 @@ export default function App() {
 
   return <div style={{color:"#fff",padding:40,textAlign:"center",fontFamily:"Georgia,serif",background:"#0a0e1a",minHeight:"100vh"}}>Loading...</div>;
 }
+            return (
+                <div class="p-8 text-center">
+                    <h1 class="text-4xl font-bold">Best XI Soccer</h1>
+                    <p class="mt-4">Game is loading...</p>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
