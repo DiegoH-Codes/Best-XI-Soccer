@@ -1,0 +1,1942 @@
+import { useState, useRef, useEffect } from "react";
+
+// ═══════════════════════════════════════════════
+//  FORMATIONS
+// ═══════════════════════════════════════════════
+const FORMATIONS = [
+  { name:"3-1-4-2",   positions:["GK","CB","CB","CB","CDM","RM","CM","CM","LM","ST","ST"] },
+  { name:"3-4-1-2",   positions:["GK","CB","CB","CB","RM","CM","CM","LM","CAM","ST","ST"] },
+  { name:"3-4-2-1",   positions:["GK","CB","CB","CB","RM","CM","CM","LM","CAM","CAM","ST"] },
+  { name:"3-5-2",     positions:["GK","CB","CB","CB","RM","CM","CM","CM","LM","ST","ST"] },
+  { name:"3-4-3",     positions:["GK","CB","CB","CB","RM","CM","CM","LM","RW","ST","LW"] },
+  { name:"4-1-2-1-2 Wide",   positions:["GK","RB","CB","CB","LB","CDM","RM","LM","CAM","ST","ST"] },
+  { name:"4-1-2-1-2 Narrow", positions:["GK","RB","CB","CB","LB","CDM","CM","CM","CAM","ST","ST"] },
+  { name:"4-1-3-2",   positions:["GK","RB","CB","CB","LB","CDM","RM","CM","LM","ST","ST"] },
+  { name:"4-1-4-1",   positions:["GK","RB","CB","CB","LB","CDM","RM","CM","CM","LM","ST"] },
+  { name:"4-2-1-3",   positions:["GK","RB","CB","CB","LB","CDM","CDM","CAM","RW","ST","LW"] },
+  { name:"4-2-2-2",   positions:["GK","RB","CB","CB","LB","CDM","CDM","CAM","CAM","ST","ST"] },
+  { name:"4-2-3-1 Wide",   positions:["GK","RB","CB","CB","LB","CDM","CDM","RW","CAM","LW","ST"] },
+  { name:"4-2-3-1 Narrow", positions:["GK","RB","CB","CB","LB","CDM","CDM","CAM","CAM","CAM","ST"] },
+  { name:"4-2-4",     positions:["GK","RB","CB","CB","LB","CDM","CDM","RW","ST","ST","LW"] },
+  { name:"4-3-1-2",   positions:["GK","RB","CB","CB","LB","CM","CM","CM","CAM","ST","ST"] },
+  { name:"4-3-2-1",   positions:["GK","RB","CB","CB","LB","CM","CM","CM","CAM","CAM","ST"] },
+  { name:"4-3-3 Flat",   positions:["GK","RB","CB","CB","LB","CM","CM","CM","RW","ST","LW"] },
+  { name:"4-3-3 Attack", positions:["GK","RB","CB","CB","LB","CDM","CM","CAM","RW","ST","LW"] },
+  { name:"4-3-3 Defend", positions:["GK","RB","CB","CB","LB","CDM","CDM","CM","RW","ST","LW"] },
+  { name:"4-4-1-1",   positions:["GK","RB","CB","CB","LB","RM","CM","CM","LM","CAM","ST"] },
+  { name:"4-4-2 (1)", positions:["GK","RB","CB","CB","LB","RM","CM","CM","LM","ST","ST"] },
+  { name:"4-4-2 (2)", positions:["GK","RB","CB","CB","LB","RM","CDM","CM","LM","ST","ST"] },
+  { name:"4-5-1",     positions:["GK","RB","CB","CB","LB","RM","CM","CDM","CM","LM","ST"] },
+  { name:"5-2-1-2",   positions:["GK","RB","CB","CB","CB","LB","CM","CM","CAM","ST","ST"] },
+  { name:"5-2-3",     positions:["GK","RB","CB","CB","CB","LB","CM","CM","RW","ST","LW"] },
+  { name:"5-3-2",     positions:["GK","RB","CB","CB","CB","LB","CM","CM","CM","ST","ST"] },
+  { name:"5-4-1",     positions:["GK","RB","CB","CB","CB","LB","RM","CM","CM","LM","ST"] },
+];
+
+// ═══════════════════════════════════════════════
+//  MANAGERS — with achievements, pros/cons, player bonds
+// ═══════════════════════════════════════════════
+const MANAGERS = [
+  {
+    name:"Pep Guardiola", emoji:"🧠",
+    style:"Tiki-taka, positional play, high press, inverted full-backs",
+    pros:"Extracts maximum from technical midfielders; transforms full-backs into playmakers; suffocates opponents with structured possession",
+    cons:"Susceptible to direct counter-attack; can over-complicate systems; struggles vs ultra-defensive setups",
+    achievements:"3× UCL, 8× PL, 3× La Liga, multiple Bundesliga titles — most decorated manager of his era",
+    bonus:{CM:10,CAM:9,CB:7,RB:8,LB:8},
+  },
+  {
+    name:"José Mourinho", emoji:"😏",
+    style:"Pragmatic low/mid-block, lethal counter-attack, man-marking, set-piece mastery",
+    pros:"Elite at neutralizing superior opponents; gets maximum from disciplined defenders and clinical strikers; brilliant man-manager for big egos",
+    cons:"Attacking play can be sterile; often clashes with creative players; struggles when forced to chase games",
+    achievements:"2× UCL, Premier League, La Liga, Serie A — the Special One across four leagues",
+    bonus:{CDM:12,CB:11,ST:8,RB:7},
+  },
+  {
+    name:"Jürgen Klopp", emoji:"🔥",
+    style:"Gegenpressing, high-intensity vertical play, rapid transitions",
+    pros:"Makes average players look world-class through collective pressing; electric attacking transitions; supreme motivator",
+    cons:"High defensive line exposed by pace in behind; pressing intensity drops late in seasons",
+    achievements:"UCL 2019, Premier League 2020, multiple domestic cups — transformed Liverpool",
+    bonus:{LW:10,RW:10,CM:8,ST:7},
+  },
+  {
+    name:"Carlo Ancelotti", emoji:"🎩",
+    style:"Flexible pragmatism, player freedom, calm rotational management",
+    pros:"Gets the best from superstars; adaptable to any system; unrivalled man-management; supremely experienced",
+    cons:"Sometimes too passive defensively; relies heavily on individual brilliance",
+    achievements:"4× UCL (most ever), PL, La Liga, Serie A, Ligue 1, Bundesliga — won everything",
+    bonus:{CAM:10,ST:9,RW:8,CM:7},
+  },
+  {
+    name:"Zinedine Zidane", emoji:"⭐",
+    style:"Galáctico harmony, squad rotation, calm authority, structured freedom",
+    pros:"Exceptional at managing elite egos; maximizes world-class forwards; keeps squads united through trophy runs",
+    cons:"Tactical schemes relatively simple; struggles to rebuild after key departures",
+    achievements:"3× consecutive UCL — historic Real Madrid trilogy",
+    bonus:{ST:10,CM:9,CB:7,CAM:8},
+  },
+  {
+    name:"Diego Simeone", emoji:"💪",
+    style:"Ultra-compact 4-4-2 low block, ferocious press at key moments, set-piece danger",
+    pros:"Makes teams virtually impossible to break down; elite at UCL upsets; extracts maximum from defensive players",
+    cons:"Attacking play can be limited; struggles to break down low blocks himself",
+    achievements:"2× La Liga with Atlético, 2× Europa League, UCL finalist",
+    bonus:{CB:13,CDM:12,LB:9,RB:9},
+  },
+  {
+    name:"Didier Deschamps", emoji:"🏆",
+    style:"Pragmatic, well-organized, results-first, flexible formations",
+    pros:"Supreme man-manager for large star-studded squads; keeps egos in check; never loses sight of the result",
+    cons:"Sacrifices flair for results; conservative when winning",
+    achievements:"World Cup 2018, UEFA Nations League — managed France's golden generation",
+    bonus:{CDM:10,CB:9,CM:8},
+  },
+  {
+    name:"Lionel Scaloni", emoji:"🇦🇷",
+    style:"Fluid 4-4-2/4-3-3 hybrid, defensive solidity, giving Messi total freedom",
+    pros:"Created perfect environment for Messi; balanced defensive work rate with attacking freedom; brilliant timing",
+    cons:"System built around Messi; limited CV outside Argentina",
+    achievements:"World Cup 2022, 2× Copa América — ended Argentina's 36-year major trophy drought",
+    bonus:{CAM:12,RW:10,LW:9,ST:8},
+  },
+  {
+    name:"Antonio Conte", emoji:"✊",
+    style:"3-5-2/3-4-3 with overlapping wing-backs, intense high press, physical dominance",
+    pros:"Turns average squads into title winners quickly; maximizes wing-backs; creates incredibly organized defensive structure",
+    cons:"Leaves clubs suddenly when resources dry up; clashes with boardrooms",
+    achievements:"3× Serie A (Juve + Inter), PL, UEFA Cup — multiple league titles across 4 countries",
+    bonus:{RB:12,LB:12,ST:9,CB:8},
+  },
+  {
+    name:"Marcelo Bielsa", emoji:"🌪️",
+    style:"Man-marking press, relentless intensity, attacking 3-3-3-1, positional obsession",
+    pros:"Produces the most exciting attacking football; develops players extraordinarily; high pressing suffocates opponents",
+    cons:"Physical demands lead to injury crises; extreme fatigue in second halves of seasons",
+    achievements:"Copa América 1993 with Argentina — inspired Guardiola, Pochettino, and a generation of coaches",
+    bonus:{CM:11,CDM:10,LW:9,RW:9},
+  },
+  {
+    name:"Mauricio Pochettino", emoji:"📈",
+    style:"High press, aggressive mid-block, youth development, 4-2-3-1",
+    pros:"Elite developer of young talent; creates extraordinary team spirit on small budgets; pressing system extracts enormous value",
+    cons:"Trophy ceiling anxiety; conservative in final third at times",
+    achievements:"UCL Final 2019 — consistently over-achieved at Southampton, Spurs, Chelsea",
+    bonus:{CM:9,ST:8,RW:8,CDM:7},
+  },
+  {
+    name:"Rafael Benítez", emoji:"📊",
+    style:"Extremely detailed tactical analysis, set-piece specialist, defensive organization",
+    pros:"Outperforms expectations against superior opposition; set-piece goals a genuine weapon",
+    cons:"Can over-rotate squads; conservative attacking play frustrates fans",
+    achievements:"UCL 2005 (miracle of Istanbul), La Liga, UEFA Cup",
+    bonus:{CB:11,CDM:10,GK:9},
+  },
+  {
+    name:"Johan Cruyff", emoji:"🌟",
+    style:"Total Football, attacking 3-4-3, positional fluidity, press from the front",
+    pros:"Revolutionized attacking football; players interchange positions creating chaos; produces elite teams",
+    cons:"Defensive vulnerabilities; requires extremely technical players",
+    achievements:"UCL 1992, 4× La Liga with Barcelona — created the Dream Team",
+    bonus:{CAM:12,RW:11,LW:11,CM:9},
+  },
+  {
+    name:"Louis van Gaal", emoji:"📐",
+    style:"Positional play, structured build-up, total control, player education",
+    pros:"Excellent developer of tactical understanding; creates extremely organized teams",
+    cons:"Rigid and demanding — players sometimes rebel; overly complex for some squads",
+    achievements:"UCL 1995, La Liga, multiple Eredivisie, FA Cup — led Netherlands to 2014 WC semi-final",
+    bonus:{CM:11,CDM:9,CB:9},
+  },
+  {
+    name:"Vicente del Bosque", emoji:"🕊️",
+    style:"Tiki-taka, false-9 innovation, possession dominance, harmony over ego",
+    pros:"Gets world-class players to suppress egos for the collective; patient build-up exhausts opponents",
+    cons:"Can lack urgency when chasing games; needs technically elite players",
+    achievements:"World Cup 2010, Euro 2012 with Spain — undefeated tournament records",
+    bonus:{CM:11,CDM:10,CAM:9},
+  },
+  {
+    name:"Fabio Capello", emoji:"🗿",
+    style:"Rigid 4-4-2, defensive first, physical intensity, ruthless discipline",
+    pros:"Elite at imposing structure on underperforming squads; strong defensive record",
+    cons:"Uninspiring final third; destroys attacking freedom",
+    achievements:"Multiple Serie A titles, La Liga — rehabilitated Juventus after Calciopoli",
+    bonus:{CB:12,CDM:10,RB:8},
+  },
+  {
+    name:"Xavi Hernández", emoji:"🎭",
+    style:"Positional play, press triggers, short passing, intelligent full-backs",
+    pros:"Deep tactical understanding; excellent with technical midfielders; players respect his playing career",
+    cons:"Struggled with management of big-money signings; still developing at top level",
+    achievements:"La Liga 2022-23 with Barcelona — led Barça's partial revival",
+    bonus:{CM:11,CDM:9,CAM:10,RB:8,LB:8},
+  },
+  {
+    name:"Jorge Jesus", emoji:"🔴",
+    style:"Intense pressing 4-3-3/4-4-2, verticality, attacking transitions",
+    pros:"Tactically brave; transforms clubs rapidly; brilliant with South American forwards",
+    cons:"Defensive vulnerabilities; not proven at the very top level",
+    achievements:"Brasileirão with Flamengo, Portuguese titles — inspired Brazilian pressing football",
+    bonus:{ST:10,CAM:9,LW:9,RW:8},
+  },
+  {
+    name:"Brendan Rodgers", emoji:"☘️",
+    style:"Fluid 4-3-3, quick transitions, wide play, high press",
+    pros:"Excellent developer of attacking talent; creates fast entertaining football",
+    cons:"Inconsistent defensive record; can wilt in elite pressure situations",
+    achievements:"PL near-miss 2013-14 with Liverpool, multiple Scottish titles — known for developing talent",
+    bonus:{LW:10,RW:9,ST:8,CM:7},
+  },
+  {
+    name:"Thomas Tuchel", emoji:"🔵",
+    style:"Gegenpressing, wing-backs, flexible back-3/back-4, intense man-marking",
+    pros:"Tactically versatile; elite at European football; maximizes defensive shape with attacking freedom",
+    cons:"Can be too tactically complex; inconsistency in long league campaigns",
+    achievements:"UCL 2021 with Chelsea — turned around Chelsea from 5th to champions",
+    bonus:{RB:10,LB:10,ST:8,CDM:8},
+  },
+  {
+    name:"Arrigo Sacchi", emoji:"🔬",
+    style:"Zonal defense, collective 4-4-2 press, defensive line coordination",
+    pros:"Invented the modern high press; perfectly coordinated team shape; made average defenders look elite",
+    cons:"Needs total tactical buy-in; physical demands extreme; rigid 4-4-2",
+    achievements:"2× European Cup with AC Milan, 1994 World Cup finalist — changed football forever",
+    bonus:{CB:11,CM:10,RM:9,LM:9},
+  },
+  {
+    name:"Roberto Martínez", emoji:"🇧🇪",
+    style:"Possession-based 3-4-2-1, technical play, building from the back",
+    pros:"Gets maximum from technically gifted players; excellent relationship with superstars",
+    cons:"Defensive organization can lack; tournaments end in disappointment despite talent",
+    achievements:"Led Belgium to world ranking #1, World Cup 3rd place 2018",
+    bonus:{CAM:10,CM:9,RW:9,LW:9},
+  },
+  {
+    name:"Luiz Felipe Scolari", emoji:"🦁",
+    style:"Organized 4-2-3-1/4-4-2, tactical flexibility, strong collective identity",
+    pros:"Extraordinary man-manager for large squads; creates unbreakable team spirit",
+    cons:"Tactical sophistication limited; big defensive collapses at key moments (7-1)",
+    achievements:"World Cup 2002 with Brazil, Euro 2016 with Portugal — two World Cups",
+    bonus:{ST:9,CAM:8,CM:7,CDM:7},
+  },
+  {
+    name:"Óscar Tabárez", emoji:"🇺🇾",
+    style:"Organized 4-4-2, strong defensive foundation, building around individual talent",
+    pros:"Elite at organizing disciplined defensive units; knew exactly how to deploy Suárez and Cavani",
+    cons:"Limited attacking sophistication beyond star players",
+    achievements:"World Cup 4th place 2010, Copa América 2011 with Uruguay — El Maestro era",
+    bonus:{ST:10,CB:9,CDM:8},
+  },
+  {
+    name:"Jorge Sampaoli", emoji:"🌊",
+    style:"Aggressive high press, fluid 3-2-4-1, man-hunting pressing",
+    pros:"Creates incredibly high-energy pressing machines; brilliant with technical South American players",
+    cons:"Can lose tactical shape under pressure; inconsistent results",
+    achievements:"Copa América 2015 with Chile — created revolutionary Chilean pressing system",
+    bonus:{CM:10,CDM:9,LW:9,RW:9},
+  },
+  {
+    name:"Vahid Halilhodžić", emoji:"🔒",
+    style:"Organized defense, physical counter-attack, 4-4-2 discipline",
+    pros:"Hard-working midfields are maximized; compact shape frustrates possession teams",
+    cons:"Limited creative flexibility; style is one-dimensional",
+    achievements:"Qualified Algeria, Morocco, Japan for World Cups — qualification specialist",
+    bonus:{CDM:10,CB:10,CM:8},
+  },
+  {
+    name:"Sam Allardyce", emoji:"💥",
+    style:"Direct 4-4-2, physicality, set-piece mastery, defensive shape",
+    pros:"Keeps teams up from desperate positions; set-piece threat is elite; physical strikers shine",
+    cons:"No attacking sophistication; technical players wasted",
+    achievements:"Multiple relegation rescues — transformed Bolton into a top-flight force",
+    bonus:{ST:10,CB:12,CDM:9},
+  },
+  {
+    name:"Hector Bellerin", emoji:"🏃",
+    style:"Progressive attacking wing-backs, high press, vertical direct play",
+    pros:"Maximizes overlapping full-backs; modern progressive approach; excellent with pacy wide players",
+    cons:"Limited managerial experience; unproven at elite level",
+    achievements:"Youth/lower-level coaching — represents the new generation of tactical thinkers",
+    bonus:{RB:13,LB:13,CM:7,RW:7},
+  },
+];
+
+// ═══════════════════════════════════════════════
+//  MANAGER-PLAYER BONDS (club + national team)
+// ═══════════════════════════════════════════════
+const MANAGER_PLAYER_BONDS = {
+  "Pep Guardiola":["Lionel Messi","Xavi Hernández","Andrés Iniesta","Sergio Busquets","David Silva","Kevin De Bruyne","Raheem Sterling","Leroy Sané","Phil Foden","Manuel Neuer","Toni Kroos","Thomas Müller","Bastian Schweinsteiger","Kyle Walker","Ilkay Gündogan","Bernardo Silva","Rúben Dias","John Stones","Erling Haaland","Rodri","Pedro","Gerard Piqué","Dani Alves","Carles Puyol"],
+  "José Mourinho":["Didier Drogba","Frank Lampard","John Terry","Ashley Cole","Ricardo Carvalho","Wayne Rooney","Rio Ferdinand","Eden Hazard","Diego Costa","Cesc Fàbregas","Thibaut Courtois","Harry Kane","Pepe","Sergio Ramos","Karim Benzema","Romelu Lukaku","Samuel Eto'o","Christian Eriksen"],
+  "Jürgen Klopp":["Mohamed Salah","Sadio Mané","Roberto Firmino","Virgil van Dijk","Trent Alexander-Arnold","Jordan Henderson","James Milner","Georginio Wijnaldum","Diogo Jota","Luis Díaz","Darwin Núñez","Andy Robertson"],
+  "Carlo Ancelotti":["Karim Benzema","Luka Modrić","Toni Kroos","Casemiro","Vinícius Júnior","Rodrygo","David Beckham","Clarence Seedorf","Kylian Mbappé","Andriy Shevchenko","Zlatan Ibrahimović"],
+  "Zinedine Zidane":["Cristiano Ronaldo","Karim Benzema","Gareth Bale","Luka Modrić","Toni Kroos","Casemiro","Sergio Ramos","Raphaël Varane","Marcelo","Dani Carvajal","Isco"],
+  "Diego Simeone":["Diego Godín","Antoine Griezmann","Jan Oblak","José María Giménez","Radamel Falcao","Diego Forlán"],
+  "Didier Deschamps":["Kylian Mbappé","Antoine Griezmann","Karim Benzema","N'Golo Kanté","Paul Pogba","Raphaël Varane","Hugo Lloris","Ousmane Dembélé","Olivier Giroud","Aurélien Tchouaméni","Théo Hernández"],
+  "Lionel Scaloni":["Lionel Messi","Julián Álvarez","Lautaro Martínez","Rodrigo De Paul","Enzo Fernández","Nicolás Otamendi","Emiliano Martínez","Ángel Di María","Lisandro Martínez","Alexis Mac Allister"],
+  "Antonio Conte":["Romelu Lukaku","Lautaro Martínez","Nicolo Barella","Ivan Perišić","Harry Kane","Son Heung-min","Paulo Dybala","Diego Godín"],
+  "Marcelo Bielsa":["Gabriel Batistuta","Diego Forlán","Robbie Keane","Mark Viduka"],
+  "Mauricio Pochettino":["Harry Kane","Son Heung-min","Christian Eriksen","Hugo Lloris","Toby Alderweireld","Jan Vertonghen","Raheem Sterling","Enzo Fernández"],
+  "Rafael Benítez":["Steven Gerrard","Xabi Alonso","Fernando Torres","David Villa","Álvaro Morata"],
+  "Johan Cruyff":["Hristo Stoichkov","Michael Laudrup","Ronald Koeman","Romário"],
+  "Louis van Gaal":["Patrick Kluivert","Clarence Seedorf","Ruud van Nistelrooy","Robin van Persie","Memphis Depay","Daley Blind"],
+  "Vicente del Bosque":["Xavi Hernández","Andrés Iniesta","Sergio Busquets","Iker Casillas","Carles Puyol","Sergio Ramos","David Villa","Fernando Torres","David Silva","Cesc Fàbregas"],
+  "Fabio Capello":["Andriy Shevchenko","Clarence Seedorf","Frank Lampard","John Terry","Rio Ferdinand","David Beckham","Wayne Rooney"],
+  "Xavi Hernández":["Pedri","Gavi","Frenkie de Jong","Lamine Yamal","Ronald Araújo","Andreas Christensen"],
+  "Jorge Jesus":["Neymar Jr","Ángel Di María","Rui Patrício","Filipe Luís","David Luiz"],
+  "Brendan Rodgers":["Luis Suárez","Steven Gerrard","Daniel Sturridge","Raheem Sterling","Philippe Coutinho","Jordan Henderson","Jamie Vardy","Riyad Mahrez"],
+  "Thomas Tuchel":["Neymar Jr","Kylian Mbappé","Marco Verratti","N'Golo Kanté","Thiago Silva","Édouard Mendy","Christian Pulisic","Harry Kane"],
+  "Roberto Martínez":["Eden Hazard","Kevin De Bruyne","Romelu Lukaku","Thibaut Courtois","Jan Vertonghen","Toby Alderweireld","Vincent Kompany","Dries Mertens","Cristiano Ronaldo","Bruno Fernandes","Rúben Dias","Bernardo Silva"],
+  "Luiz Felipe Scolari":["Ronaldo Nazário","Ronaldinho","Rivaldo","Cafú","Roberto Carlos","Lúcio","Kaká","Cristiano Ronaldo","Luís Figo","Rui Costa"],
+  "Óscar Tabárez":["Diego Forlán","Luis Suárez","Edinson Cavani","Diego Godín","Fernando Muslera"],
+  "Jorge Sampaoli":["Alexis Sánchez","Arturo Vidal","Radamel Falcao"],
+  "Arrigo Sacchi":["Marco van Basten","Ruud Gullit","Frank Rijkaard","Paolo Maldini","Franco Baresi","Carlo Ancelotti"],
+};
+
+function getManagerBondBonus(manager, playerNames) {
+  if (!manager || !MANAGER_PLAYER_BONDS[manager.name]) return { bonus:0, bonds:[] };
+  const bonds = MANAGER_PLAYER_BONDS[manager.name].filter(n => playerNames.includes(n));
+  return { bonus: bonds.length * 4, bonds };
+}
+
+// ═══════════════════════════════════════════════
+//  LIGA MX AUTOFILL
+// ═══════════════════════════════════════════════
+const LIGA_MX_POOL = {
+  GK: ["Raúl Gudiño","Hugo González","Alfredo Talavera","Guillermo Allison","Sebastián Jurado","Carlos Acevedo","Luis Ángel Malagón","Óscar Ustari","Nahuel Guzmán","Tiago Volpi"],
+  CB: ["Igor Lichnovsky","Emanuel Aguilera","Lisandro Magallán","Sebastián Escobar","Víctor Guzmán (def)","Frank Fabra (CB)","Erick Aguirre CB","Néstor Vidrio","Oswaldo Alanís","Alan Mozo CB"],
+  RB: ["Jorge Sánchez","Diego Reyes (RB)","Gerardo Arteaga (RB)","Javier Güemez","Miguel Ponce (RB)","Erick Aguirre","Héctor Moreno (RB)","Richer Ledezma","Alexis Peña","Luis Fuentes RB"],
+  LB: ["Juan Angulo","Bryan Garnica","Jesús Gallardo","Aldo Cruz","Rodrigo Huescas","Ulises Rivas","Omar Campos","Diego del Valle","Kevin Álvarez LB","Efraín Orona LB"],
+  CDM: ["Erick Gutiérrez","Bryan González CDM","Lucas Romero","Danilo Verón","Mauricio Isais","Gerardo Torrado","Rafael Baca","José Torres CDM","Alan Cervantes CDM","Alejandro Zendejas CDM"],
+  CM: ["Óscar Rojas","Sebastián Córdova","Aldo López","Ismael Govea","Eric Canales","Ramón Juárez","Pablo Barrera CM","Jesús Dueñas","Jorge Torres Nilo","Roberto Alvarado CM"],
+  CAM: ["Alexis Vega","Diego Valdés","Víctor Dávila CAM","José Juan Macías CAM","Juan Pablo Vigón","Jesús Corona CAM","Orbelin Pineda","Rubén González CAM","Nico Castillo CAM","Christian Bermúdez CAM"],
+  RM: ["Jurgen Damm","Diego Lainez RM","Rodrigo López","Alan Mozo RM","Brayan Angulo RM","Carlos González RM","Ricky Ledezma RM","Mauro Lainez RM","Fernando Navarro RM","Jorge Angulo RM"],
+  LM: ["Bryan Angulo","Eric Cantú LM","Carlos Fierro LM","Juan Delgadillo LM","Pablo Barrera LM","Diogo de Oliveira LM","Kevin Álvarez LM","Walter Sandoval LM","José Abella LM","Christian Cueva LM"],
+  RW: ["Alexis Vega RW","Diego Lainez","Jurgen Damm RW","Roberto Alvarado RW","Bryan Ramos RW","Víctor Dávila","Andrés Vombergar","Fausto Pinto RW","Orbelin Pineda RW","Aldo Rocha RW"],
+  LW: ["Bryan Angulo LW","Alan Pulido LW","Carlos Fierro LW","Ángel Mena LW","Pablo Monroy LW","Ricky Ledezma LW","Unai Bilbao LW","Dieter Villalpando LW","José Corona LW","Christian Tabó LW"],
+  ST: ["Henry Martín","Nicolás Ibáñez","Fernando Aristeguieta","Rogelio Funes Mori","Mauro Quiroga","Germán Berterame","Alan Pulido","Julián Quiñones","Santiago Trigos","Camilo Sanvezzo"],
+  CF: ["Rogelio Funes Mori CF","Henry Martín CF","Fernando Aristeguieta CF","Ariel Nahuelpan","Darío Burbano","Matías Alustiza","Francisco Acuña","Rodrigo Burgos CF","Ángel Zaldivar CF","Nico Castillo CF"],
+};
+
+const ligaMXFill = (basePos, usedNames) => {
+  const pool = LIGA_MX_POOL[basePos] || LIGA_MX_POOL["CM"];
+  const avail = pool.filter(n => !usedNames.has(n));
+  const name = avail.length > 0 ? avail[Math.floor(Math.random()*avail.length)] : `Liga MX ${basePos} ${Math.floor(Math.random()*99)+1}`;
+  return { id:-(Math.floor(Math.random()*99999)+1), name, positions:[basePos], era:"Current", isLigaMX:true, country:"Liga MX", rating:68 };
+};
+
+// ═══════════════════════════════════════════════
+//  CHEMISTRY BONDS
+// ═══════════════════════════════════════════════
+const CHEMISTRY_BONDS = [
+  { players:["Lionel Messi","Luis Suárez","Neymar Jr"], bonus:15, label:"MSN (Barcelona)" },
+  { players:["Cristiano Ronaldo","Karim Benzema","Gareth Bale"], bonus:12, label:"BBC (Real Madrid)" },
+  { players:["Thierry Henry","Patrick Vieira","Robert Pirès"], bonus:10, label:"Arsenal Invincibles core" },
+  { players:["Steven Gerrard","Frank Lampard","Paul Scholes"], bonus:8, label:"England midfield trio" },
+  { players:["Ronaldo Nazário","Ronaldinho","Rivaldo"], bonus:14, label:"Brazil Samba Magic" },
+  { players:["Andrés Iniesta","Xavi Hernández","Sergio Busquets"], bonus:13, label:"Barcelona midfield engine" },
+  { players:["Luka Modrić","Toni Kroos","Casemiro"], bonus:13, label:"Real Madrid midfield trio" },
+  { players:["Mohamed Salah","Sadio Mané","Roberto Firmino"], bonus:11, label:"Liverpool front three" },
+  { players:["Kevin De Bruyne","Raheem Sterling","Leroy Sané"], bonus:10, label:"Man City attacking trio" },
+  { players:["Gerd Müller","Franz Beckenbauer","Sepp Maier"], bonus:12, label:"Bayern/Germany legend trio" },
+  { players:["Paolo Maldini","Franco Baresi","Gianluigi Buffon"], bonus:11, label:"Italian defensive wall" },
+  { players:["Ronaldo Nazário","Ronaldinho","Cafú"], bonus:10, label:"Brazil 2002 World Cup" },
+  { players:["Pelé","Garrincha"], bonus:12, label:"Brazil's greatest duo" },
+  { players:["Luis Suárez","Edinson Cavani"], bonus:9, label:"Uruguay strike force" },
+  { players:["Johan Cruyff","Johan Neeskens"], bonus:11, label:"Total Football duo" },
+  { players:["Zinedine Zidane","Thierry Henry"], bonus:10, label:"France golden attack" },
+  { players:["Andrea Pirlo","Alessandro Del Piero"], bonus:10, label:"Juventus/Italy creative axis" },
+  { players:["Enzo Fernández","Julián Álvarez","Lautaro Martínez"], bonus:9, label:"Argentina new generation" },
+  { players:["Vinícius Júnior","Rodrygo","Endrick"], bonus:10, label:"Brazil new generation" },
+  { players:["Kylian Mbappé","Antoine Griezmann","Karim Benzema"], bonus:12, label:"France attacking triumvirate" },
+  { players:["Gabriel Batistuta","Diego Maradona"], bonus:10, label:"Argentina golden legends" },
+  { players:["Kylian Mbappé","Neymar Jr"], bonus:9, label:"PSG superstar duo" },
+  { players:["Virgil van Dijk","Trent Alexander-Arnold","Andy Robertson"], bonus:8, label:"Liverpool defensive unit" },
+  { players:["Pedri","Gavi","Lamine Yamal"], bonus:9, label:"Barcelona's future" },
+  { players:["Lionel Messi","Rodrigo De Paul","Enzo Fernández"], bonus:8, label:"Argentina midfield-forward axis" },
+];
+
+function calcChemistry(playerList) {
+  const names = playerList.map(p=>p?.name).filter(Boolean);
+  let bonus=0; const bonuses=[];
+  for (const bond of CHEMISTRY_BONDS) {
+    const m = bond.players.filter(n=>names.includes(n)).length;
+    if (m>=2) { const b=Math.round(bond.bonus*m/bond.players.length); bonus+=b; bonuses.push({label:bond.label,bonus:b}); }
+  }
+  const cc={};
+  for (const p of playerList) { if (p?.country && p.country!=="Liga MX") cc[p.country]=(cc[p.country]||0)+1; }
+  for (const [c,cnt] of Object.entries(cc)) {
+    if (cnt>=3) { const b=Math.min(cnt*2,12); bonus+=b; bonuses.push({label:`${c} national team bloc (${cnt} players)`,bonus:b}); }
+  }
+  return { bonus, bonuses };
+}
+
+// ═══════════════════════════════════════════════
+//  PLAYER DATABASE — 30-40 per country, all capped
+// ═══════════════════════════════════════════════
+let _pid=1; const uid=()=>_pid++;
+
+const PLAYERS = {
+  Argentina:[
+    {id:uid(),name:"Lionel Messi",positions:["RW","CAM","CF","ST"],era:"Legend",rating:97},
+    {id:uid(),name:"Diego Maradona",positions:["CAM","RW","ST"],era:"Legend",rating:97},
+    {id:uid(),name:"Sergio Agüero",positions:["ST","CF"],era:"Recent",rating:89},
+    {id:uid(),name:"Gabriel Batistuta",positions:["ST","CF"],era:"Legend",rating:91},
+    {id:uid(),name:"Javier Zanetti",positions:["RB","RM","CM"],era:"Legend",rating:88},
+    {id:uid(),name:"Roberto Ayala",positions:["CB","RB"],era:"Legend",rating:85},
+    {id:uid(),name:"Oscar Ruggeri",positions:["CB"],era:"Legend",rating:83},
+    {id:uid(),name:"Daniel Passarella",positions:["CB","CDM"],era:"Legend",rating:87},
+    {id:uid(),name:"Juan Verón",positions:["CM","CAM","CDM"],era:"Legend",rating:86},
+    {id:uid(),name:"Hernán Crespo",positions:["ST","CF"],era:"Legend",rating:87},
+    {id:uid(),name:"Marcelo Gallardo",positions:["CAM","CM"],era:"Legend",rating:82},
+    {id:uid(),name:"Mario Kempes",positions:["ST","CF"],era:"Legend",rating:89},
+    {id:uid(),name:"Claudio Caniggia",positions:["RW","ST","LW"],era:"Legend",rating:86},
+    {id:uid(),name:"Jorge Burruchaga",positions:["CAM","CM","ST"],era:"Legend",rating:82},
+    {id:uid(),name:"Claudio López",positions:["LW","ST","RW"],era:"Legend",rating:80},
+    {id:uid(),name:"Ángel Di María",positions:["RW","LW","RM","LM"],era:"Recent",rating:88},
+    {id:uid(),name:"Paulo Dybala",positions:["CAM","RW","ST"],era:"Current",rating:86},
+    {id:uid(),name:"Emiliano Martínez",positions:["GK"],era:"Current",rating:87},
+    {id:uid(),name:"Ubaldo Fillol",positions:["GK"],era:"Legend",rating:84},
+    {id:uid(),name:"Germán Burgos",positions:["GK"],era:"Legend",rating:75},
+    {id:uid(),name:"Nicolás Otamendi",positions:["CB"],era:"Current",rating:83},
+    {id:uid(),name:"Cristian Romero",positions:["CB"],era:"Current",rating:85},
+    {id:uid(),name:"Lisandro Martínez",positions:["CB","CDM"],era:"Current",rating:84},
+    {id:uid(),name:"Marcos Acuña",positions:["LB","LM"],era:"Current",rating:81},
+    {id:uid(),name:"Nahuel Molina",positions:["RB","RM","RW"],era:"Current",rating:82},
+    {id:uid(),name:"Rodrigo De Paul",positions:["CM","RM","CAM"],era:"Current",rating:84},
+    {id:uid(),name:"Julián Álvarez",positions:["ST","CF","RW"],era:"Current",rating:86},
+    {id:uid(),name:"Lautaro Martínez",positions:["ST","CF"],era:"Current",rating:87},
+    {id:uid(),name:"Enzo Fernández",positions:["CM","CDM"],era:"Current",rating:84},
+    {id:uid(),name:"Alexis Mac Allister",positions:["CM","CAM","CDM"],era:"Current",rating:84},
+    {id:uid(),name:"Alejandro Gómez",positions:["CAM","RW","LW"],era:"Recent",rating:83},
+    {id:uid(),name:"Leandro Paredes",positions:["CDM","CM"],era:"Current",rating:82},
+    {id:uid(),name:"Germán Pezzella",positions:["CB"],era:"Recent",rating:79},
+    {id:uid(),name:"Agustín Marchesín",positions:["GK"],era:"Recent",rating:79},
+    {id:uid(),name:"Enzo Pérez",positions:["CDM","CM"],era:"Recent",rating:79},
+    // ── 2014 Squad Additions ──
+    {id:uid(),name:"Javier Mascherano",positions:["CDM","CB"],era:"Recent",rating:88},
+    {id:uid(),name:"Pablo Zabaleta",positions:["RB"],era:"Recent",rating:85},
+    {id:uid(),name:"Gonzalo Higuaín",positions:["ST"],era:"Recent",rating:89},
+    {id:uid(),name:"Ezequiel Lavezzi",positions:["LW","RW","CF"],era:"Recent",rating:85},
+    {id:uid(),name:"Ezequiel Garay",positions:["CB"],era:"Recent",rating:84},
+    {id:uid(),name:"Marcos Rojo",positions:["LB","CB","LWB"],era:"Recent",rating:82},
+    {id:uid(),name:"Sergio Romero",positions:["GK"],era:"Recent",rating:84},
+    {id:uid(),name:"Lucas Biglia",positions:["CDM","CM"],era:"Recent",rating:83},
+    {id:uid(),name:"Maxi Rodríguez",positions:["RM","LM","RW"],era:"Legend",rating:84},
+    {id:uid(),name:"Fernando Gago",positions:["CM","CDM"],era:"Legend",rating:83},
+    {id:uid(),name:"Martín Demichelis",positions:["CB"],era:"Recent",rating:83},
+    // ── Legends Additions ──
+    {id:uid(),name:"Juan Román Riquelme",positions:["CAM"],era:"Legend",rating:91},
+    {id:uid(),name:"Fernando Redondo",positions:["CDM","CM"],era:"Legend",rating:89},
+    {id:uid(),name:"Carlos Tevez",positions:["ST","CF","CAM"],era:"Legend",rating:88},
+    {id:uid(),name:"Ariel Ortega",positions:["CAM","RW"],era:"Legend",rating:85},
+    {id:uid(),name:"Pablo Aimar",positions:["CAM","RW"],era:"Legend",rating:86},
+    {id:uid(),name:"Diego Simeone",positions:["CDM","CM"],era:"Legend",rating:86},
+    {id:uid(),name:"Walter Samuel",positions:["CB"],era:"Legend",rating:87},
+    {id:uid(),name:"Diego Milito",positions:["ST","CF"],era:"Legend",rating:87},
+    {id:uid(),name:"Esteban Cambiasso",positions:["CDM","CM"],era:"Legend",rating:87},
+    {id:uid(),name:"Juan Sorín",positions:["LB","LM","LWB"],era:"Legend",rating:84},
+    {id:uid(),name:"Gabriel Heinze",positions:["LB","CB"],era:"Legend",rating:83},
+    {id:uid(),name:"Roberto Abbondanzieri",positions:["GK"],era:"Legend",rating:82},
+    {id:uid(),name:"Martín Palermo",positions:["ST"],era:"Legend",rating:82},
+    {id:uid(),name:"Jorge Valdano",positions:["ST","CF"],era:"Legend",rating:87},
+    {id:uid(),name:"Oscar Ardiles",positions:["CM","RM"],era:"Legend",rating:85},
+    {id:uid(),name:"Américo Gallego",positions:["CDM","CM"],era:"Legend",rating:84},
+    {id:uid(),name:"Alberto Tarantini",positions:["LB","CB"],era:"Legend",rating:84},
+    {id:uid(),name:"Nery Pumpido",positions:["GK"],era:"Legend",rating:85},
+    {id:uid(),name:"José Luis Brown",positions:["CB"],era:"Legend",rating:83},
+    // ── 2022 Squad Additions ──
+    {id:uid(),name:"Nicolás Tagliafico",positions:["LB","LWB"],era:"Current",rating:82},
+    {id:uid(),name:"Gonzalo Montiel",positions:["RB","RWB"],era:"Current",rating:80},
+  ],
+    {id:uid(),name:"Kylian Mbappé",positions:["ST","LW","RW","CF"],era:"Current",rating:94},
+    {id:uid(),name:"Zinedine Zidane",positions:["CAM","CM"],era:"Legend",rating:96},
+    {id:uid(),name:"Thierry Henry",positions:["ST","LW","CF"],era:"Legend",rating:93},
+    {id:uid(),name:"Michel Platini",positions:["CAM","CM"],era:"Legend",rating:94},
+    {id:uid(),name:"Patrick Vieira",positions:["CM","CDM"],era:"Legend",rating:90},
+    {id:uid(),name:"Laurent Blanc",positions:["CB","CDM"],era:"Legend",rating:86},
+    {id:uid(),name:"Lilian Thuram",positions:["RB","CB"],era:"Legend",rating:87},
+    {id:uid(),name:"Marcel Desailly",positions:["CB","CDM"],era:"Legend",rating:87},
+    {id:uid(),name:"Bixente Lizarazu",positions:["LB"],era:"Legend",rating:85},
+    {id:uid(),name:"Eric Cantona",positions:["ST","CAM","CF"],era:"Legend",rating:90},
+    {id:uid(),name:"Didier Deschamps",positions:["CDM","CM"],era:"Legend",rating:84},
+    {id:uid(),name:"Youri Djorkaeff",positions:["CAM","LW","ST"],era:"Legend",rating:86},
+    {id:uid(),name:"Robert Pirès",positions:["LW","CAM","LM"],era:"Legend",rating:87},
+    {id:uid(),name:"William Gallas",positions:["CB","RB","LB"],era:"Legend",rating:83},
+    {id:uid(),name:"Hugo Lloris",positions:["GK"],era:"Recent",rating:88},
+    {id:uid(),name:"Fabien Barthez",positions:["GK"],era:"Legend",rating:87},
+    {id:uid(),name:"Mike Maignan",positions:["GK"],era:"Current",rating:86},
+    {id:uid(),name:"Raphaël Varane",positions:["CB"],era:"Recent",rating:88},
+    {id:uid(),name:"Jules Koundé",positions:["RB","CB"],era:"Current",rating:85},
+    {id:uid(),name:"Théo Hernández",positions:["LB","LM"],era:"Current",rating:84},
+    {id:uid(),name:"Lucas Hernández",positions:["LB","CB"],era:"Recent",rating:83},
+    {id:uid(),name:"Dayot Upamecano",positions:["CB"],era:"Current",rating:83},
+    {id:uid(),name:"Paul Pogba",positions:["CM","CDM","CAM"],era:"Recent",rating:87},
+    {id:uid(),name:"N'Golo Kanté",positions:["CDM","CM"],era:"Recent",rating:90},
+    {id:uid(),name:"Aurélien Tchouaméni",positions:["CDM","CM"],era:"Current",rating:85},
+    {id:uid(),name:"Eduardo Camavinga",positions:["CDM","CM","LB"],era:"Current",rating:83},
+    {id:uid(),name:"Adrien Rabiot",positions:["CM","CDM","CAM"],era:"Recent",rating:83},
+    {id:uid(),name:"Antoine Griezmann",positions:["CAM","LW","ST","CF"],era:"Recent",rating:88},
+    {id:uid(),name:"Karim Benzema",positions:["ST","CF"],era:"Recent",rating:91},
+    {id:uid(),name:"Olivier Giroud",positions:["ST","CF"],era:"Recent",rating:84},
+    {id:uid(),name:"Ousmane Dembélé",positions:["RW","LW"],era:"Current",rating:86},
+    {id:uid(),name:"Bradley Barcola",positions:["LW","RW","ST"],era:"Current",rating:83},
+    {id:uid(),name:"Marcus Thuram",positions:["ST","LW","CF"],era:"Current",rating:84},
+    {id:uid(),name:"Kingsley Coman",positions:["LW","RW"],era:"Recent",rating:84},
+    {id:uid(),name:"Moussa Diaby",positions:["RW","LW"],era:"Current",rating:83},
+    {id:uid(),name:"Christopher Nkunku",positions:["CAM","LW","ST"],era:"Current",rating:84},
+    {id:uid(),name:"Wissam Ben Yedder",positions:["ST","CF"],era:"Recent",rating:82},
+  ],
+  England:[
+    {id:uid(),name:"Harry Kane",positions:["ST","CF"],era:"Current",rating:90},
+    {id:uid(),name:"Bobby Charlton",positions:["CM","CAM"],era:"Legend",rating:90},
+    {id:uid(),name:"Bobby Moore",positions:["CB","CDM"],era:"Legend",rating:90},
+    {id:uid(),name:"Gordon Banks",positions:["GK"],era:"Legend",rating:90},
+    {id:uid(),name:"Peter Shilton",positions:["GK"],era:"Legend",rating:87},
+    {id:uid(),name:"Jordan Pickford",positions:["GK"],era:"Current",rating:82},
+    {id:uid(),name:"Gary Lineker",positions:["ST","CF"],era:"Legend",rating:87},
+    {id:uid(),name:"Alan Shearer",positions:["ST","CF"],era:"Legend",rating:91},
+    {id:uid(),name:"Michael Owen",positions:["ST","CF"],era:"Legend",rating:86},
+    {id:uid(),name:"Jimmy Greaves",positions:["ST","CF"],era:"Legend",rating:88},
+    {id:uid(),name:"Kevin Keegan",positions:["ST","RW","CF"],era:"Legend",rating:86},
+    {id:uid(),name:"Wayne Rooney",positions:["ST","CAM","RW"],era:"Recent",rating:90},
+    {id:uid(),name:"David Beckham",positions:["RM","RW","CM","RB"],era:"Legend",rating:87},
+    {id:uid(),name:"Paul Scholes",positions:["CM","CAM","CDM"],era:"Legend",rating:88},
+    {id:uid(),name:"Steven Gerrard",positions:["CM","CDM","CAM"],era:"Legend",rating:89},
+    {id:uid(),name:"Frank Lampard",positions:["CM","CAM"],era:"Legend",rating:89},
+    {id:uid(),name:"Bryan Robson",positions:["CM","CDM","CAM"],era:"Legend",rating:87},
+    {id:uid(),name:"Glenn Hoddle",positions:["CAM","CM"],era:"Legend",rating:85},
+    {id:uid(),name:"Peter Beardsley",positions:["CAM","ST","CF"],era:"Legend",rating:84},
+    {id:uid(),name:"Ashley Cole",positions:["LB"],era:"Legend",rating:88},
+    {id:uid(),name:"Stuart Pearce",positions:["LB"],era:"Legend",rating:83},
+    {id:uid(),name:"Gary Neville",positions:["RB"],era:"Legend",rating:84},
+    {id:uid(),name:"Rio Ferdinand",positions:["CB"],era:"Legend",rating:89},
+    {id:uid(),name:"John Terry",positions:["CB"],era:"Legend",rating:88},
+    {id:uid(),name:"Tony Adams",positions:["CB"],era:"Legend",rating:86},
+    {id:uid(),name:"Terry Butcher",positions:["CB"],era:"Legend",rating:82},
+    {id:uid(),name:"Phil Foden",positions:["CAM","CM","LW","RW"],era:"Current",rating:88},
+    {id:uid(),name:"Jude Bellingham",positions:["CM","CAM"],era:"Current",rating:89},
+    {id:uid(),name:"Bukayo Saka",positions:["RW","LW","RB"],era:"Current",rating:86},
+    {id:uid(),name:"Marcus Rashford",positions:["LW","ST","RW"],era:"Current",rating:84},
+    {id:uid(),name:"Jack Grealish",positions:["LW","CAM","CM"],era:"Current",rating:83},
+    {id:uid(),name:"Raheem Sterling",positions:["LW","RW","ST"],era:"Recent",rating:85},
+    {id:uid(),name:"Trent Alexander-Arnold",positions:["RB","RM","CM"],era:"Current",rating:86},
+    {id:uid(),name:"Andy Robertson",positions:["LB","LM"],era:"Current",rating:85},
+    {id:uid(),name:"Declan Rice",positions:["CDM","CM"],era:"Current",rating:86},
+    {id:uid(),name:"John Stones",positions:["CB","CDM"],era:"Current",rating:84},
+    {id:uid(),name:"Kieran Trippier",positions:["RB","RM"],era:"Current",rating:83},
+  ],
+  Belgium:[
+    {id:uid(),name:"Eden Hazard",positions:["LW","CAM","RW"],era:"Recent",rating:89},
+    {id:uid(),name:"Kevin De Bruyne",positions:["CAM","CM","RW"],era:"Current",rating:91},
+    {id:uid(),name:"Romelu Lukaku",positions:["ST","CF"],era:"Current",rating:87},
+    {id:uid(),name:"Enzo Scifo",positions:["CAM","CM"],era:"Legend",rating:84},
+    {id:uid(),name:"Marc Wilmots",positions:["CM","ST"],era:"Legend",rating:78},
+    {id:uid(),name:"Philippe Albert",positions:["CB","CDM"],era:"Legend",rating:80},
+    {id:uid(),name:"Daniel Van Buyten",positions:["CB"],era:"Legend",rating:83},
+    {id:uid(),name:"Lorenzo Staelens",positions:["CDM","CM"],era:"Legend",rating:76},
+    {id:uid(),name:"Emile Mpenza",positions:["ST","LW"],era:"Legend",rating:76},
+    {id:uid(),name:"Johan Walem",positions:["CM","CAM"],era:"Legend",rating:75},
+    {id:uid(),name:"Thomas Vermaelen",positions:["CB","LB"],era:"Recent",rating:82},
+    {id:uid(),name:"Vincent Kompany",positions:["CB","CDM"],era:"Recent",rating:87},
+    {id:uid(),name:"Jan Vertonghen",positions:["CB","LB"],era:"Recent",rating:85},
+    {id:uid(),name:"Toby Alderweireld",positions:["CB","RB"],era:"Recent",rating:85},
+    {id:uid(),name:"Thomas Meunier",positions:["RB","RM"],era:"Recent",rating:81},
+    {id:uid(),name:"Thibaut Courtois",positions:["GK"],era:"Current",rating:91},
+    {id:uid(),name:"Simon Mignolet",positions:["GK"],era:"Recent",rating:80},
+    {id:uid(),name:"Axel Witsel",positions:["CDM","CM"],era:"Recent",rating:84},
+    {id:uid(),name:"Marouane Fellaini",positions:["CM","CDM","CAM"],era:"Recent",rating:82},
+    {id:uid(),name:"Dries Mertens",positions:["CAM","ST","RW"],era:"Recent",rating:86},
+    {id:uid(),name:"Yannick Carrasco",positions:["LW","LM","LB"],era:"Recent",rating:82},
+    {id:uid(),name:"Nacer Chadli",positions:["LW","CAM","RM"],era:"Recent",rating:79},
+    {id:uid(),name:"Christian Benteke",positions:["ST","CF"],era:"Recent",rating:80},
+    {id:uid(),name:"Divock Origi",positions:["ST","LW"],era:"Recent",rating:78},
+    {id:uid(),name:"Michy Batshuayi",positions:["ST","CF"],era:"Recent",rating:79},
+    {id:uid(),name:"Leandro Trossard",positions:["LW","CAM","RW"],era:"Current",rating:84},
+    {id:uid(),name:"Jeremy Doku",positions:["LW","RW"],era:"Current",rating:83},
+    {id:uid(),name:"Lois Openda",positions:["ST","LW"],era:"Current",rating:83},
+    {id:uid(),name:"Arthur Vermeeren",positions:["CM","CDM"],era:"Current",rating:80},
+    {id:uid(),name:"Wout Faes",positions:["CB"],era:"Current",rating:79},
+    // ── Golden Gen Additions ──
+    {id:uid(),name:"Radja Nainggolan",positions:["CM","CDM","CAM"],era:"Recent",rating:86},
+    {id:uid(),name:"Mousa Dembélé",positions:["CM","CDM","CAM"],era:"Recent",rating:87},
+    {id:uid(),name:"Thorgan Hazard",positions:["LM","LW","LWB"],era:"Recent",rating:82},
+    {id:uid(),name:"Kevin Mirallas",positions:["RW","LW","ST"],era:"Recent",rating:81},
+    {id:uid(),name:"Dedryck Boyata",positions:["CB","RB"],era:"Recent",rating:79},
+    {id:uid(),name:"Jason Denayer",positions:["CB","RB"],era:"Recent",rating:80},
+    {id:uid(),name:"Nicolas Lombaerts",positions:["CB","LB"],era:"Recent",rating:80},
+    {id:uid(),name:"Adnan Januzaj",positions:["RW","LW"],era:"Recent",rating:79},
+    // ── Current Stars Additions ──
+    {id:uid(),name:"Amadou Onana",positions:["CDM","CM"],era:"Current",rating:83},
+    {id:uid(),name:"Timothy Castagne",positions:["RB","LB","RWB"],era:"Current",rating:81},
+    {id:uid(),name:"Charles De Ketelaere",positions:["CF","CAM","ST"],era:"Current",rating:81},
+    {id:uid(),name:"Koen Casteels",positions:["GK"],era:"Current",rating:82},
+    {id:uid(),name:"Youri Tielemans",positions:["CM","CDM","CAM"],era:"Current",rating:84},
+    {id:uid(),name:"Arthur Theate",positions:["CB","LB"],era:"Current",rating:80},
+    {id:uid(),name:"Johan Bakayoko",positions:["RW","RM"],era:"Current",rating:80},
+    {id:uid(),name:"Orel Mangala",positions:["CDM","CM"],era:"Current",rating:80},
+    {id:uid(),name:"Matz Sels",positions:["GK"],era:"Current",rating:79},
+    // ── Legends Additions ──
+    {id:uid(),name:"Jan Ceulemans",positions:["CAM","CF","ST"],era:"Legend",rating:88},
+    {id:uid(),name:"Jean-Marie Pfaff",positions:["GK"],era:"Legend",rating:88},
+    {id:uid(),name:"Eric Gerets",positions:["RB"],era:"Legend",rating:86},
+    {id:uid(),name:"Michel Preud'homme",positions:["GK"],era:"Legend",rating:87},
+    {id:uid(),name:"Franky Vercauteren",positions:["LW","LM"],era:"Legend",rating:84},
+    {id:uid(),name:"Paul Van Himst",positions:["CF","CAM","ST"],era:"Legend",rating:88},
+    {id:uid(),name:"Wilfried Van Moer",positions:["CM","CDM"],era:"Legend",rating:85},
+    {id:uid(),name:"Georges Grün",positions:["CB","RB"],era:"Legend",rating:84},
+    {id:uid(),name:"Luc Nilis",positions:["ST","CF"],era:"Legend",rating:85},
+    {id:uid(),name:"Mbo Mpenza",positions:["RW","ST"],era:"Legend",rating:78},
+    {id:uid(),name:"Timmy Simons",positions:["CDM","CB"],era:"Legend",rating:81},
+    {id:uid(),name:"Wesley Sonck",positions:["ST"],era:"Legend",rating:79},
+  ],
+  Brazil:[
+    {id:uid(),name:"Pelé",positions:["ST","CF","CAM"],era:"Legend",rating:98},
+    {id:uid(),name:"Ronaldo Nazário",positions:["ST","CF","RW"],era:"Legend",rating:97},
+    {id:uid(),name:"Ronaldinho",positions:["CAM","RW","LW","ST"],era:"Legend",rating:96},
+    {id:uid(),name:"Zico",positions:["CAM","CM"],era:"Legend",rating:93},
+    {id:uid(),name:"Romário",positions:["ST","CF"],era:"Legend",rating:93},
+    {id:uid(),name:"Rivaldo",positions:["CAM","LW","ST"],era:"Legend",rating:92},
+    {id:uid(),name:"Garrincha",positions:["RW","RM"],era:"Legend",rating:92},
+    {id:uid(),name:"Falcão",positions:["CDM","CM"],era:"Legend",rating:90},
+    {id:uid(),name:"Kaká",positions:["CAM","CM"],era:"Legend",rating:92},
+    {id:uid(),name:"Roberto Carlos",positions:["LB","LM"],era:"Legend",rating:91},
+    {id:uid(),name:"Cafú",positions:["RB","RM"],era:"Legend",rating:90},
+    {id:uid(),name:"Sócrates",positions:["CAM","CM"],era:"Legend",rating:88},
+    {id:uid(),name:"Bebeto",positions:["ST","CF","LW"],era:"Legend",rating:89},
+    {id:uid(),name:"Adriano",positions:["ST","CF","LW"],era:"Legend",rating:87},
+    {id:uid(),name:"Lúcio",positions:["CB","CDM"],era:"Legend",rating:87},
+    {id:uid(),name:"Aldair",positions:["CB"],era:"Legend",rating:84},
+    {id:uid(),name:"Taffarel",positions:["GK"],era:"Legend",rating:87},
+    {id:uid(),name:"Júlio César",positions:["GK"],era:"Legend",rating:86},
+    {id:uid(),name:"Robinho",positions:["LW","RW","ST"],era:"Recent",rating:82},
+    {id:uid(),name:"Neymar Jr",positions:["LW","CAM","RW","ST"],era:"Current",rating:91},
+    {id:uid(),name:"Alisson Becker",positions:["GK"],era:"Current",rating:90},
+    {id:uid(),name:"Éderson",positions:["GK"],era:"Current",rating:87},
+    {id:uid(),name:"Thiago Silva",positions:["CB"],era:"Recent",rating:89},
+    {id:uid(),name:"Éder Militão",positions:["CB","RB"],era:"Current",rating:86},
+    {id:uid(),name:"Gabriel Magalhães",positions:["CB"],era:"Current",rating:84},
+    {id:uid(),name:"Marcelo",positions:["LB","LM"],era:"Recent",rating:87},
+    {id:uid(),name:"Dani Alves",positions:["RB","RM","CM"],era:"Recent",rating:88},
+    {id:uid(),name:"Casemiro",positions:["CDM","CM"],era:"Current",rating:87},
+    {id:uid(),name:"Lucas Paquetá",positions:["CAM","CM","LW"],era:"Current",rating:84},
+    {id:uid(),name:"Vinícius Júnior",positions:["LW","ST","RW"],era:"Current",rating:90},
+    {id:uid(),name:"Rodrygo",positions:["RW","LW","ST"],era:"Current",rating:85},
+    {id:uid(),name:"Endrick",positions:["ST","CF"],era:"Current",rating:82},
+    {id:uid(),name:"Richarlison",positions:["ST","LW","RW"],era:"Current",rating:83},
+    {id:uid(),name:"Fred (Fluminense)",positions:["CDM","CM"],era:"Current",rating:82},
+    {id:uid(),name:"Antony",positions:["RW","LW"],era:"Current",rating:80},
+  ],
+  Portugal:[
+    {id:uid(),name:"Cristiano Ronaldo",positions:["LW","ST","CF","RW"],era:"Legend",rating:95},
+    {id:uid(),name:"Eusébio",positions:["ST","CF","RW"],era:"Legend",rating:93},
+    {id:uid(),name:"Luís Figo",positions:["RW","CAM","RM"],era:"Legend",rating:90},
+    {id:uid(),name:"Rui Costa",positions:["CAM","CM"],era:"Legend",rating:88},
+    {id:uid(),name:"Deco",positions:["CAM","CM"],era:"Legend",rating:87},
+    {id:uid(),name:"Pauleta",positions:["ST","CF"],era:"Legend",rating:83},
+    {id:uid(),name:"Nuno Gomes",positions:["ST","CF"],era:"Legend",rating:83},
+    {id:uid(),name:"Simão Sabrosa",positions:["LW","LM","CAM"],era:"Legend",rating:81},
+    {id:uid(),name:"Hélder Postiga",positions:["ST","CF"],era:"Legend",rating:77},
+    {id:uid(),name:"Fernando Couto",positions:["CB"],era:"Legend",rating:84},
+    {id:uid(),name:"Ricardo Carvalho",positions:["CB"],era:"Legend",rating:86},
+    {id:uid(),name:"Vítor Baía",positions:["GK"],era:"Legend",rating:86},
+    {id:uid(),name:"Nani",positions:["LW","RW","LM"],era:"Recent",rating:84},
+    {id:uid(),name:"Pepe",positions:["CB","CDM"],era:"Recent",rating:85},
+    {id:uid(),name:"João Moutinho",positions:["CM","CDM","CAM"],era:"Recent",rating:83},
+    {id:uid(),name:"William Carvalho",positions:["CDM","CM"],era:"Recent",rating:82},
+    {id:uid(),name:"Rúben Neves",positions:["CDM","CM"],era:"Recent",rating:83},
+    {id:uid(),name:"Rui Patrício",positions:["GK"],era:"Recent",rating:84},
+    {id:uid(),name:"Diogo Costa",positions:["GK"],era:"Current",rating:83},
+    {id:uid(),name:"Rúben Dias",positions:["CB"],era:"Current",rating:89},
+    {id:uid(),name:"João Cancelo",positions:["RB","LB","CM"],era:"Current",rating:87},
+    {id:uid(),name:"Nélson Semedo",positions:["RB","RM"],era:"Current",rating:81},
+    {id:uid(),name:"Raphaël Guerreiro",positions:["LB","CM","LM"],era:"Current",rating:83},
+    {id:uid(),name:"Bruno Fernandes",positions:["CAM","CM","RW"],era:"Current",rating:88},
+    {id:uid(),name:"Bernardo Silva",positions:["CM","CAM","RW","LW"],era:"Current",rating:88},
+    {id:uid(),name:"Vitinha",positions:["CM","CDM"],era:"Current",rating:83},
+    {id:uid(),name:"Otávio",positions:["CM","RM","RW"],era:"Recent",rating:80},
+    {id:uid(),name:"João Félix",positions:["CAM","LW","RW","ST"],era:"Current",rating:85},
+    {id:uid(),name:"Rafael Leão",positions:["LW","ST"],era:"Current",rating:86},
+    {id:uid(),name:"Gonçalo Ramos",positions:["ST","CF"],era:"Current",rating:84},
+    {id:uid(),name:"André Silva",positions:["ST","CF"],era:"Recent",rating:81},
+    {id:uid(),name:"Diogo Jota",positions:["LW","ST","RW"],era:"Current",rating:84},
+  ],
+  Netherlands:[
+    {id:uid(),name:"Johan Cruyff",positions:["ST","CAM","RW","LW"],era:"Legend",rating:96},
+    {id:uid(),name:"Marco van Basten",positions:["ST","CF"],era:"Legend",rating:94},
+    {id:uid(),name:"Ruud Gullit",positions:["CAM","ST","LW","CM"],era:"Legend",rating:93},
+    {id:uid(),name:"Johan Neeskens",positions:["CDM","CM"],era:"Legend",rating:87},
+    {id:uid(),name:"Rob Rensenbrink",positions:["LW","ST","LM"],era:"Legend",rating:84},
+    {id:uid(),name:"Frank Rijkaard",positions:["CDM","CM"],era:"Legend",rating:88},
+    {id:uid(),name:"Ronald Koeman",positions:["CB","CDM"],era:"Legend",rating:88},
+    {id:uid(),name:"Dennis Bergkamp",positions:["CAM","ST","CF"],era:"Legend",rating:91},
+    {id:uid(),name:"Clarence Seedorf",positions:["CM","CAM","CDM"],era:"Legend",rating:87},
+    {id:uid(),name:"Patrick Kluivert",positions:["ST","CF","LW"],era:"Legend",rating:87},
+    {id:uid(),name:"Edgar Davids",positions:["CDM","CM"],era:"Legend",rating:85},
+    {id:uid(),name:"Marc Overmars",positions:["LW","RW","LM"],era:"Legend",rating:85},
+    {id:uid(),name:"Jaap Stam",positions:["CB"],era:"Legend",rating:87},
+    {id:uid(),name:"Philip Cocu",positions:["CM","CAM","CDM"],era:"Legend",rating:81},
+    {id:uid(),name:"Mark van Bommel",positions:["CDM","CM"],era:"Legend",rating:83},
+    {id:uid(),name:"Arjen Robben",positions:["RW","LW","ST"],era:"Legend",rating:89},
+    {id:uid(),name:"Wesley Sneijder",positions:["CAM","CM"],era:"Legend",rating:88},
+    {id:uid(),name:"Ruud van Nistelrooy",positions:["ST","CF"],era:"Legend",rating:89},
+    {id:uid(),name:"Edwin van der Sar",positions:["GK"],era:"Legend",rating:88},
+    {id:uid(),name:"Rafael van der Vaart",positions:["CAM","CM","RW"],era:"Recent",rating:83},
+    {id:uid(),name:"Robin van Persie",positions:["ST","LW","CF"],era:"Recent",rating:87},
+    {id:uid(),name:"Khalid Boulahrouz",positions:["RB","CB"],era:"Legend",rating:79},
+    {id:uid(),name:"Virgil van Dijk",positions:["CB"],era:"Current",rating:90},
+    {id:uid(),name:"Georginio Wijnaldum",positions:["CM","CAM","CDM"],era:"Recent",rating:84},
+    {id:uid(),name:"Memphis Depay",positions:["LW","ST","CAM"],era:"Current",rating:84},
+    {id:uid(),name:"Frenkie de Jong",positions:["CM","CDM"],era:"Current",rating:86},
+    {id:uid(),name:"Matthijs de Ligt",positions:["CB","RB"],era:"Current",rating:85},
+    {id:uid(),name:"Cody Gakpo",positions:["LW","ST","RW"],era:"Current",rating:84},
+    {id:uid(),name:"Xavi Simons",positions:["CAM","CM","RW"],era:"Current",rating:83},
+    {id:uid(),name:"Ryan Gravenberch",positions:["CM","CDM"],era:"Current",rating:82},
+    {id:uid(),name:"Nathan Aké",positions:["CB","LB"],era:"Current",rating:82},
+    {id:uid(),name:"Denzel Dumfries",positions:["RB","RM"],era:"Current",rating:83},
+  ],
+  Spain:[
+    {id:uid(),name:"Andrés Iniesta",positions:["CM","CAM","LW"],era:"Legend",rating:91},
+    {id:uid(),name:"Xavi Hernández",positions:["CM","CDM","CAM"],era:"Legend",rating:91},
+    {id:uid(),name:"Raúl",positions:["ST","RW","CF"],era:"Legend",rating:89},
+    {id:uid(),name:"Fernando Hierro",positions:["CB","CDM"],era:"Legend",rating:86},
+    {id:uid(),name:"Iker Casillas",positions:["GK"],era:"Legend",rating:91},
+    {id:uid(),name:"Carles Puyol",positions:["CB","RB"],era:"Legend",rating:88},
+    {id:uid(),name:"Sergio Ramos",positions:["CB","RB","CDM"],era:"Recent",rating:89},
+    {id:uid(),name:"Sergio Busquets",positions:["CDM","CM"],era:"Recent",rating:88},
+    {id:uid(),name:"David Villa",positions:["ST","LW","CF"],era:"Legend",rating:88},
+    {id:uid(),name:"Fernando Torres",positions:["ST","CF","LW"],era:"Legend",rating:88},
+    {id:uid(),name:"David Silva",positions:["CAM","CM","LW"],era:"Legend",rating:90},
+    {id:uid(),name:"Cesc Fàbregas",positions:["CAM","CM"],era:"Legend",rating:88},
+    {id:uid(),name:"Pedro",positions:["RW","LW","ST","CAM"],era:"Recent",rating:82},
+    {id:uid(),name:"Juan Mata",positions:["CAM","RW","CM"],era:"Recent",rating:84},
+    {id:uid(),name:"Santi Cazorla",positions:["CAM","CM","LW"],era:"Recent",rating:85},
+    {id:uid(),name:"Michel Salgado",positions:["RB","RM"],era:"Legend",rating:82},
+    {id:uid(),name:"Álvaro Arbeloa",positions:["RB","CB"],era:"Legend",rating:78},
+    {id:uid(),name:"Jordi Alba",positions:["LB","LM"],era:"Recent",rating:85},
+    {id:uid(),name:"Koke",positions:["CM","CAM","RM"],era:"Recent",rating:83},
+    {id:uid(),name:"Jesús Navas",positions:["RB","RW","RM"],era:"Recent",rating:81},
+    {id:uid(),name:"Diego Costa",positions:["ST","CF"],era:"Recent",rating:83},
+    {id:uid(),name:"Rodri",positions:["CDM","CM"],era:"Current",rating:91},
+    {id:uid(),name:"Dani Carvajal",positions:["RB","RM"],era:"Current",rating:85},
+    {id:uid(),name:"Aymeric Laporte",positions:["CB","LB"],era:"Recent",rating:85},
+    {id:uid(),name:"Pedri",positions:["CM","CAM"],era:"Current",rating:87},
+    {id:uid(),name:"Gavi",positions:["CM","CDM","CAM"],era:"Current",rating:86},
+    {id:uid(),name:"Lamine Yamal",positions:["RW","LW","CAM"],era:"Current",rating:87},
+    {id:uid(),name:"Dani Olmo",positions:["CAM","CM","LW"],era:"Current",rating:85},
+    {id:uid(),name:"Ferran Torres",positions:["LW","RW","ST"],era:"Current",rating:82},
+    {id:uid(),name:"Unai Simón",positions:["GK"],era:"Current",rating:83},
+    {id:uid(),name:"Mikel Merino",positions:["CM","CDM"],era:"Current",rating:82},
+    {id:uid(),name:"Marcos Alonso",positions:["LB","LW","LM"],era:"Recent",rating:80},
+    // ── 2010 Era Additions ──
+    {id:uid(),name:"Xabi Alonso",positions:["CDM","CM"],era:"Legend",rating:90},
+    {id:uid(),name:"Gerard Piqué",positions:["CB"],era:"Legend",rating:89},
+    {id:uid(),name:"Joan Capdevila",positions:["LB"],era:"Legend",rating:83},
+    {id:uid(),name:"Pepe Reina",positions:["GK"],era:"Legend",rating:84},
+    {id:uid(),name:"Raúl Albiol",positions:["CB"],era:"Legend",rating:82},
+    {id:uid(),name:"Carlos Marchena",positions:["CB","CDM"],era:"Legend",rating:83},
+    {id:uid(),name:"Fernando Llorente",positions:["ST"],era:"Legend",rating:83},
+    {id:uid(),name:"Javi Martínez",positions:["CDM","CB"],era:"Legend",rating:85},
+    {id:uid(),name:"Víctor Valdés",positions:["GK"],era:"Legend",rating:87},
+    {id:uid(),name:"Thiago Alcântara",positions:["CM","CDM","CAM"],era:"Recent",rating:87},
+    {id:uid(),name:"Álvaro Morata",positions:["ST","CF"],era:"Current",rating:84},
+    {id:uid(),name:"Isco",positions:["CAM","LW","CM"],era:"Recent",rating:86},
+    {id:uid(),name:"David de Gea",positions:["GK"],era:"Recent",rating:88},
+    {id:uid(),name:"César Azpilicueta",positions:["RB","LB","CB"],era:"Recent",rating:85},
+    // ── Legends Additions ──
+    {id:uid(),name:"Pep Guardiola",positions:["CDM","CM"],era:"Legend",rating:84},
+    {id:uid(),name:"Luis Enrique",positions:["CM","RM","LM","RB"],era:"Legend",rating:85},
+    {id:uid(),name:"Gaizka Mendieta",positions:["CM","RM"],era:"Legend",rating:85},
+    {id:uid(),name:"Fernando Morientes",positions:["ST"],era:"Legend",rating:85},
+    {id:uid(),name:"Santiago Cañizares",positions:["GK"],era:"Legend",rating:84},
+    {id:uid(),name:"Marcos Senna",positions:["CDM","CM"],era:"Legend",rating:83},
+    {id:uid(),name:"Guti",positions:["CAM","CM","CF"],era:"Legend",rating:83},
+    {id:uid(),name:"Andoni Zubizarreta",positions:["GK"],era:"Legend",rating:87},
+    {id:uid(),name:"Emilio Butragueño",positions:["ST","CF"],era:"Legend",rating:88},
+    {id:uid(),name:"Míchel",positions:["RM","CM"],era:"Legend",rating:86},
+    {id:uid(),name:"Julen Guerrero",positions:["CAM","LM"],era:"Legend",rating:83},
+    // ── Modern Era Additions ──
+    {id:uid(),name:"Nico Williams",positions:["LW","RW"],era:"Current",rating:84},
+    {id:uid(),name:"Alejandro Grimaldo",positions:["LB","LWB","LM"],era:"Current",rating:85},
+    {id:uid(),name:"Pau Torres",positions:["CB"],era:"Current",rating:84},
+    {id:uid(),name:"Robin Le Normand",positions:["CB"],era:"Current",rating:83},
+    {id:uid(),name:"Marc Cucurella",positions:["LB","LWB"],era:"Current",rating:82},
+    {id:uid(),name:"Fabián Ruiz",positions:["CM","CDM"],era:"Current",rating:84},
+  ],
+    {id:uid(),name:"Gianluigi Buffon",positions:["GK"],era:"Legend",rating:92},
+    {id:uid(),name:"Gianluigi Donnarumma",positions:["GK"],era:"Current",rating:88},
+    {id:uid(),name:"Franco Baresi",positions:["CB","CDM"],era:"Legend",rating:93},
+    {id:uid(),name:"Paolo Maldini",positions:["LB","CB"],era:"Legend",rating:93},
+    {id:uid(),name:"Alessandro Costacurta",positions:["CB"],era:"Legend",rating:85},
+    {id:uid(),name:"Fabio Cannavaro",positions:["CB","RB"],era:"Legend",rating:89},
+    {id:uid(),name:"Gianluca Zambrotta",positions:["RB","LB","RM"],era:"Legend",rating:84},
+    {id:uid(),name:"Giorgio Chiellini",positions:["CB","LB"],era:"Recent",rating:87},
+    {id:uid(),name:"Leonardo Bonucci",positions:["CB","CDM"],era:"Recent",rating:85},
+    {id:uid(),name:"Roberto Donadoni",positions:["RM","CM","CAM"],era:"Legend",rating:82},
+    {id:uid(),name:"Demetrio Albertini",positions:["CM","CDM","CAM"],era:"Legend",rating:83},
+    {id:uid(),name:"Gennaro Gattuso",positions:["CDM","CM"],era:"Legend",rating:84},
+    {id:uid(),name:"Andrea Pirlo",positions:["CDM","CM","CAM"],era:"Legend",rating:91},
+    {id:uid(),name:"Daniele De Rossi",positions:["CDM","CM"],era:"Recent",rating:85},
+    {id:uid(),name:"Marco Verratti",positions:["CM","CDM"],era:"Recent",rating:86},
+    {id:uid(),name:"Jorginho",positions:["CDM","CM"],era:"Recent",rating:83},
+    {id:uid(),name:"Roberto Baggio",positions:["CAM","ST","CF"],era:"Legend",rating:93},
+    {id:uid(),name:"Alessandro Del Piero",positions:["CAM","LW","ST","CF"],era:"Legend",rating:91},
+    {id:uid(),name:"Francesco Totti",positions:["CAM","ST","CF","RW"],era:"Legend",rating:91},
+    {id:uid(),name:"Gianluca Vialli",positions:["ST","CF"],era:"Legend",rating:87},
+    {id:uid(),name:"Christian Vieri",positions:["ST","CF"],era:"Legend",rating:88},
+    {id:uid(),name:"Filippo Inzaghi",positions:["ST","CF"],era:"Legend",rating:85},
+    {id:uid(),name:"Luca Toni",positions:["ST","CF"],era:"Legend",rating:83},
+    {id:uid(),name:"Ciro Immobile",positions:["ST","CF","LW"],era:"Recent",rating:84},
+    {id:uid(),name:"Lorenzo Insigne",positions:["LW","CAM","RW"],era:"Recent",rating:85},
+    {id:uid(),name:"Nicolò Barella",positions:["CM","CAM","CDM"],era:"Current",rating:87},
+    {id:uid(),name:"Sandro Tonali",positions:["CM","CDM"],era:"Current",rating:85},
+    {id:uid(),name:"Federico Chiesa",positions:["RW","LW","ST"],era:"Current",rating:84},
+    {id:uid(),name:"Federico Dimarco",positions:["LB","LM"],era:"Current",rating:82},
+    {id:uid(),name:"Giovanni Di Lorenzo",positions:["RB","CB"],era:"Current",rating:83},
+    {id:uid(),name:"Federico Bernardeschi",positions:["RW","CAM","LW"],era:"Recent",rating:79},
+    {id:uid(),name:"Matteo Politano",positions:["RW","LW","CAM"],era:"Current",rating:80},
+  ],
+  Croatia:[
+    {id:uid(),name:"Luka Modrić",positions:["CM","CDM","CAM"],era:"Current",rating:91},
+    {id:uid(),name:"Zvonimir Boban",positions:["CM","CDM"],era:"Legend",rating:87},
+    {id:uid(),name:"Davor Šuker",positions:["ST","CF"],era:"Legend",rating:86},
+    {id:uid(),name:"Igor Štimac",positions:["CB"],era:"Legend",rating:79},
+    {id:uid(),name:"Robert Kovač",positions:["CB","CDM"],era:"Legend",rating:78},
+    {id:uid(),name:"Stipe Pletikosa",positions:["GK"],era:"Legend",rating:83},
+    {id:uid(),name:"Darijo Srna",positions:["RB","RM","RW"],era:"Recent",rating:83},
+    {id:uid(),name:"Vedran Ćorluka",positions:["RB","CB"],era:"Recent",rating:81},
+    {id:uid(),name:"Ivan Rakitić",positions:["CM","CDM","CAM"],era:"Recent",rating:87},
+    {id:uid(),name:"Mario Mandžukić",positions:["ST","CF","LW"],era:"Recent",rating:84},
+    {id:uid(),name:"Ivan Perišić",positions:["LW","LM","LB"],era:"Recent",rating:83},
+    {id:uid(),name:"Marcelo Brozović",positions:["CDM","CM"],era:"Recent",rating:84},
+    {id:uid(),name:"Dejan Lovren",positions:["CB","RB"],era:"Recent",rating:80},
+    {id:uid(),name:"Ivan Strinić",positions:["LB"],era:"Recent",rating:77},
+    {id:uid(),name:"Dominik Livaković",positions:["GK"],era:"Current",rating:83},
+    {id:uid(),name:"Joško Gvardiol",positions:["CB","LB"],era:"Current",rating:86},
+    {id:uid(),name:"Mateo Kovačić",positions:["CM","CDM"],era:"Current",rating:85},
+    {id:uid(),name:"Andrej Kramarić",positions:["ST","RW","CF"],era:"Current",rating:82},
+    {id:uid(),name:"Bruno Petković",positions:["ST","CF"],era:"Current",rating:79},
+    {id:uid(),name:"Nikola Vlašić",positions:["CAM","CM","RW"],era:"Current",rating:81},
+    {id:uid(),name:"Ante Budimir",positions:["ST","CF"],era:"Current",rating:78},
+    {id:uid(),name:"Josip Stanišić",positions:["RB","CB"],era:"Current",rating:79},
+    {id:uid(),name:"Borna Sosa",positions:["LB","LM"],era:"Current",rating:80},
+    {id:uid(),name:"Duje Ćaleta-Car",positions:["CB"],era:"Current",rating:78},
+    {id:uid(),name:"Mislav Oršić",positions:["LW","RW"],era:"Recent",rating:79},
+    {id:uid(),name:"Josip Šutalo",positions:["CB"],era:"Current",rating:77},
+  ],
+  Morocco:[
+    {id:uid(),name:"Yassine Bounou",positions:["GK"],era:"Current",rating:85},
+    {id:uid(),name:"Mehdi Benatia",positions:["CB","RB"],era:"Recent",rating:83},
+    {id:uid(),name:"Romain Saïss",positions:["CB","CDM"],era:"Recent",rating:81},
+    {id:uid(),name:"Nayef Aguerd",positions:["CB"],era:"Current",rating:82},
+    {id:uid(),name:"Noussair Mazraoui",positions:["RB","CB"],era:"Current",rating:82},
+    {id:uid(),name:"Achraf Hakimi",positions:["RB","RM","RW"],era:"Current",rating:88},
+    {id:uid(),name:"Jawad El Yamiq",positions:["CB"],era:"Current",rating:78},
+    {id:uid(),name:"Badr Benoun",positions:["CB","RB"],era:"Recent",rating:76},
+    {id:uid(),name:"Abdeslam Ouaddou",positions:["CB"],era:"Legend",rating:77},
+    {id:uid(),name:"Yahia Attiyat Allah",positions:["LB","LM"],era:"Current",rating:77},
+    {id:uid(),name:"Sofyan Amrabat",positions:["CDM","CM"],era:"Current",rating:83},
+    {id:uid(),name:"Azzedine Ounahi",positions:["CM","CAM"],era:"Current",rating:81},
+    {id:uid(),name:"Selim Amallah",positions:["CM","CAM"],era:"Recent",rating:77},
+    {id:uid(),name:"Youssef Chippo",positions:["CM","CAM"],era:"Legend",rating:76},
+    {id:uid(),name:"Mustapha Hadji",positions:["CAM","CM","RW"],era:"Legend",rating:81},
+    {id:uid(),name:"Hakim Ziyech",positions:["RW","CAM","LW"],era:"Current",rating:84},
+    {id:uid(),name:"Sofiane Boufal",positions:["LW","CAM","RW"],era:"Recent",rating:80},
+    {id:uid(),name:"Amine Harit",positions:["CAM","CM","RW"],era:"Recent",rating:79},
+    {id:uid(),name:"Bilal El Khannouss",positions:["CAM","CM","LW"],era:"Current",rating:80},
+    {id:uid(),name:"Nabil Dirar",positions:["RW","RM","RB"],era:"Recent",rating:78},
+    {id:uid(),name:"Tarik Sektioui",positions:["LW","ST"],era:"Legend",rating:74},
+    {id:uid(),name:"Abdelmajid Dolmy",positions:["CAM","RW"],era:"Legend",rating:74},
+    {id:uid(),name:"Youssef En-Nesyri",positions:["ST","CF"],era:"Current",rating:83},
+    {id:uid(),name:"Abderrazak Hamdallah",positions:["ST","CF"],era:"Recent",rating:80},
+    {id:uid(),name:"Munir El Haddadi",positions:["RW","LW","ST"],era:"Recent",rating:78},
+    {id:uid(),name:"Zakaria Aboukhlal",positions:["LW","RW","ST"],era:"Current",rating:79},
+    {id:uid(),name:"Anass Zaroury",positions:["LW","RW"],era:"Current",rating:79},
+    {id:uid(),name:"Mohammadi Timoumi",positions:["CM","CAM"],era:"Legend",rating:73},
+    {id:uid(),name:"Younes Belhanda",positions:["CAM","CM"],era:"Recent",rating:80},
+  ],
+  Colombia:[
+    {id:uid(),name:"Carlos Valderrama",positions:["CAM","CM"],era:"Legend",rating:88},
+    {id:uid(),name:"Radamel Falcao",positions:["ST","CF"],era:"Recent",rating:90},
+    {id:uid(),name:"Freddy Rincón",positions:["CM","CDM","CAM"],era:"Legend",rating:83},
+    {id:uid(),name:"Faustino Asprilla",positions:["ST","RW","CF"],era:"Legend",rating:83},
+    {id:uid(),name:"Andrés Escobar",positions:["CB"],era:"Legend",rating:82},
+    {id:uid(),name:"René Higuita",positions:["GK"],era:"Legend",rating:83},
+    {id:uid(),name:"Óscar Córdoba",positions:["GK"],era:"Legend",rating:81},
+    {id:uid(),name:"Iván Córdoba",positions:["CB","RB"],era:"Legend",rating:82},
+    {id:uid(),name:"Mario Yepes",positions:["CB"],era:"Legend",rating:80},
+    {id:uid(),name:"Willington Ortiz",positions:["CAM","CM"],era:"Legend",rating:77},
+    {id:uid(),name:"Antony De Ávila",positions:["LW","ST"],era:"Legend",rating:73},
+    {id:uid(),name:"David Ospina",positions:["GK"],era:"Recent",rating:82},
+    {id:uid(),name:"James Rodríguez",positions:["CAM","CM","RW","LW"],era:"Recent",rating:87},
+    {id:uid(),name:"Juan Cuadrado",positions:["RW","RM","RB","CAM"],era:"Recent",rating:84},
+    {id:uid(),name:"Camilo Zúñiga",positions:["RB","RM"],era:"Recent",rating:78},
+    {id:uid(),name:"Yerry Mina",positions:["CB"],era:"Recent",rating:80},
+    {id:uid(),name:"Davinson Sánchez",positions:["CB","RB"],era:"Current",rating:83},
+    {id:uid(),name:"Santiago Arias",positions:["RB","RM"],era:"Recent",rating:78},
+    {id:uid(),name:"Johan Mojica",positions:["LB","LM"],era:"Recent",rating:78},
+    {id:uid(),name:"Jefferson Lerma",positions:["CDM","CM"],era:"Current",rating:80},
+    {id:uid(),name:"Richard Ríos",positions:["CM","CDM"],era:"Current",rating:81},
+    {id:uid(),name:"Luis Díaz",positions:["LW","RW","ST"],era:"Current",rating:86},
+    {id:uid(),name:"Luis Muriel",positions:["ST","LW","CF"],era:"Recent",rating:82},
+    {id:uid(),name:"Miguel Borja",positions:["ST","CF"],era:"Current",rating:79},
+    {id:uid(),name:"Rafael Santos Borré",positions:["ST","LW"],era:"Current",rating:79},
+    {id:uid(),name:"Jhon Jáder Durán",positions:["ST","CF"],era:"Current",rating:80},
+    {id:uid(),name:"Alfredo Morelos",positions:["ST","CF"],era:"Recent",rating:78},
+    {id:uid(),name:"Nicolás González",positions:["RW","LW","ST"],era:"Current",rating:80},
+    {id:uid(),name:"Daniel Torres",positions:["CM","CDM"],era:"Current",rating:78},
+    {id:uid(),name:"Jhon Córdoba",positions:["ST","CF"],era:"Current",rating:79},
+  ],
+  USA:[
+    {id:uid(),name:"Landon Donovan",positions:["CAM","RW","LW","ST"],era:"Legend",rating:83},
+    {id:uid(),name:"Clint Dempsey",positions:["CAM","ST","CF","RW"],era:"Recent",rating:82},
+    {id:uid(),name:"Brad Friedel",positions:["GK"],era:"Legend",rating:82},
+    {id:uid(),name:"Kasey Keller",positions:["GK"],era:"Legend",rating:80},
+    {id:uid(),name:"Tim Howard",positions:["GK"],era:"Legend",rating:84},
+    {id:uid(),name:"Claudio Reyna",positions:["CM","CAM"],era:"Legend",rating:79},
+    {id:uid(),name:"John Harkes",positions:["CM","RM"],era:"Legend",rating:77},
+    {id:uid(),name:"Eric Wynalda",positions:["ST","LW","CF"],era:"Legend",rating:78},
+    {id:uid(),name:"Tab Ramos",positions:["CAM","CM"],era:"Legend",rating:76},
+    {id:uid(),name:"Alexi Lalas",positions:["CB"],era:"Legend",rating:74},
+    {id:uid(),name:"Joe Gaetjens",positions:["ST","CF"],era:"Legend",rating:72},
+    {id:uid(),name:"Freddy Adu",positions:["CAM","LW","ST"],era:"Legend",rating:75},
+    {id:uid(),name:"Carlos Bocanegra",positions:["CB","LB"],era:"Legend",rating:78},
+    {id:uid(),name:"Oguchi Onyewu",positions:["CB"],era:"Legend",rating:77},
+    {id:uid(),name:"Steve Cherundolo",positions:["RB"],era:"Legend",rating:78},
+    {id:uid(),name:"DaMarcus Beasley",positions:["LW","LB","LM"],era:"Legend",rating:78},
+    {id:uid(),name:"Pablo Mastroeni",positions:["CDM","CM"],era:"Legend",rating:75},
+    {id:uid(),name:"Michael Bradley",positions:["CDM","CM"],era:"Recent",rating:79},
+    {id:uid(),name:"Jozy Altidore",positions:["ST","CF"],era:"Recent",rating:78},
+    {id:uid(),name:"Tim Ream",positions:["CB","LB"],era:"Recent",rating:79},
+    {id:uid(),name:"John Brooks",positions:["CB"],era:"Recent",rating:80},
+    {id:uid(),name:"Geoff Cameron",positions:["CB","RB","CDM"],era:"Recent",rating:78},
+    {id:uid(),name:"Brad Guzan",positions:["GK"],era:"Recent",rating:78},
+    {id:uid(),name:"DeAndre Yedlin",positions:["RB","RM"],era:"Recent",rating:78},
+    {id:uid(),name:"Kellyn Acosta",positions:["CDM","CM"],era:"Recent",rating:77},
+    {id:uid(),name:"Zack Steffen",positions:["GK"],era:"Recent",rating:79},
+    {id:uid(),name:"Matt Turner",positions:["GK"],era:"Current",rating:78},
+    {id:uid(),name:"Chris Richards",positions:["CB"],era:"Current",rating:79},
+    {id:uid(),name:"Sergiño Dest",positions:["RB","LB","RW"],era:"Current",rating:80},
+    {id:uid(),name:"Antonee Robinson",positions:["LB","LM"],era:"Current",rating:81},
+    {id:uid(),name:"Walker Zimmerman",positions:["CB"],era:"Current",rating:79},
+    {id:uid(),name:"Matt Miazga",positions:["CB"],era:"Recent",rating:77},
+    {id:uid(),name:"Tyler Adams",positions:["CDM","CM"],era:"Current",rating:83},
+    {id:uid(),name:"Weston McKennie",positions:["CM","CAM","CDM"],era:"Current",rating:82},
+    {id:uid(),name:"Christian Pulisic",positions:["LW","CAM","RW","ST"],era:"Current",rating:83},
+    {id:uid(),name:"Gio Reyna",positions:["CAM","CM","RW"],era:"Current",rating:82},
+    {id:uid(),name:"Jordan Morris",positions:["LW","ST","RW"],era:"Current",rating:77},
+    {id:uid(),name:"Josh Sargent",positions:["ST","RW"],era:"Current",rating:77},
+    {id:uid(),name:"Ricardo Pepi",positions:["ST","CF"],era:"Current",rating:79},
+    {id:uid(),name:"Folarin Balogun",positions:["ST","CF"],era:"Current",rating:82},
+    {id:uid(),name:"Luca de la Torre",positions:["CM","CAM"],era:"Current",rating:77},
+    // ── 2002 Golden Era Additions ──
+    {id:uid(),name:"Brian McBride",positions:["ST","CF"],era:"Legend",rating:84},
+    {id:uid(),name:"Eddie Pope",positions:["CB"],era:"Legend",rating:84},
+    {id:uid(),name:"John O'Brien",positions:["LB","CDM","CM"],era:"Legend",rating:83},
+    {id:uid(),name:"Tony Sanneh",positions:["RB","RM"],era:"Legend",rating:81},
+    {id:uid(),name:"Frankie Hejduk",positions:["RB","LB","RM"],era:"Legend",rating:79},
+    {id:uid(),name:"Cobi Jones",positions:["RM","RW","LM"],era:"Legend",rating:81},
+    {id:uid(),name:"Earnie Stewart",positions:["RM","RW","CM"],era:"Legend",rating:81},
+    {id:uid(),name:"Tony Meola",positions:["GK"],era:"Legend",rating:80},
+    {id:uid(),name:"Thomas Dooley",positions:["CB","CDM"],era:"Legend",rating:81},
+    {id:uid(),name:"Marcelo Balboa",positions:["CB"],era:"Legend",rating:82},
+    {id:uid(),name:"Joe-Max Moore",positions:["ST","CF","CAM"],era:"Legend",rating:79},
+    {id:uid(),name:"Eddie Lewis",positions:["LM","LB"],era:"Legend",rating:79},
+    {id:uid(),name:"Jeff Agoos",positions:["CB","LB"],era:"Legend",rating:78},
+    // ── 2010 Generation ──
+    {id:uid(),name:"Jermaine Jones",positions:["CDM","CM","CB"],era:"Recent",rating:83},
+    {id:uid(),name:"Fabian Johnson",positions:["LB","RB","LM","RM"],era:"Recent",rating:82},
+    {id:uid(),name:"Jay DeMerit",positions:["CB"],era:"Recent",rating:78},
+    {id:uid(),name:"Benny Feilhaber",positions:["CM","CAM"],era:"Recent",rating:79},
+    {id:uid(),name:"Maurice Edu",positions:["CDM","CB"],era:"Recent",rating:79},
+    {id:uid(),name:"Herculez Gomez",positions:["ST","RW","LW"],era:"Recent",rating:77},
+    // ── Modern Era Additions ──
+    {id:uid(),name:"Tim Weah",positions:["RW","ST","LW"],era:"Current",rating:80},
+    {id:uid(),name:"Brenden Aaronson",positions:["CAM","LW","RW","CM"],era:"Current",rating:79},
+    {id:uid(),name:"Yunus Musah",positions:["CM","RM","CDM"],era:"Current",rating:81},
+    {id:uid(),name:"Cameron Carter-Vickers",positions:["CB"],era:"Current",rating:79},
+    {id:uid(),name:"Miles Robinson",positions:["CB"],era:"Current",rating:78},
+    {id:uid(),name:"Joe Scally",positions:["RB","LB"],era:"Current",rating:78},
+    {id:uid(),name:"Malik Tillman",positions:["CAM","LW"],era:"Current",rating:79},
+    {id:uid(),name:"Haji Wright",positions:["ST","LW"],era:"Current",rating:78},
+  ],
+  Mexico:[
+    {id:uid(),name:"Hugo Sánchez",positions:["ST","CF","RW"],era:"Legend",rating:90},
+    {id:uid(),name:"Cuauhtémoc Blanco",positions:["CAM","ST","CF"],era:"Legend",rating:86},
+    {id:uid(),name:"Rafael Márquez",positions:["CB","CDM","CM"],era:"Legend",rating:87},
+    {id:uid(),name:"Jorge Campos",positions:["GK"],era:"Legend",rating:81},
+    {id:uid(),name:"Oswaldo Sánchez",positions:["GK"],era:"Legend",rating:79},
+    {id:uid(),name:"Alberto García Aspe",positions:["CM","CAM"],era:"Legend",rating:80},
+    {id:uid(),name:"Benjamín Galindo",positions:["CM","CAM"],era:"Legend",rating:78},
+    {id:uid(),name:"Ramón Ramírez",positions:["CM","CAM"],era:"Legend",rating:79},
+    {id:uid(),name:"Luis García",positions:["CM","CAM","RW"],era:"Legend",rating:79},
+    {id:uid(),name:"Luis Hernández",positions:["ST","CF"],era:"Legend",rating:81},
+    {id:uid(),name:"Pavel Pardo",positions:["CM","CDM"],era:"Legend",rating:79},
+    {id:uid(),name:"Carlos Salcido",positions:["LB","CB"],era:"Legend",rating:80},
+    {id:uid(),name:"Gerardo Torrado",positions:["CDM","CM"],era:"Legend",rating:78},
+    {id:uid(),name:"Guillermo Ochoa",positions:["GK"],era:"Current",rating:83},
+    {id:uid(),name:"Javier Hernández",positions:["ST","CF"],era:"Recent",rating:85},
+    {id:uid(),name:"Andrés Guardado",positions:["LM","LW","CAM","LB"],era:"Recent",rating:82},
+    {id:uid(),name:"Giovanni dos Santos",positions:["CAM","LW","RW","ST"],era:"Recent",rating:80},
+    {id:uid(),name:"Carlos Vela",positions:["RW","LW","CAM","ST"],era:"Recent",rating:85},
+    {id:uid(),name:"Héctor Herrera",positions:["CM","CDM","CAM"],era:"Recent",rating:82},
+    {id:uid(),name:"Héctor Moreno",positions:["CB","RB"],era:"Recent",rating:79},
+    {id:uid(),name:"Hirving Lozano",positions:["RW","LW","ST"],era:"Current",rating:84},
+    {id:uid(),name:"Edson Álvarez",positions:["CDM","CB","CM"],era:"Current",rating:84},
+    {id:uid(),name:"Santiago Giménez",positions:["ST","CF"],era:"Current",rating:84},
+    {id:uid(),name:"Jorge Sánchez",positions:["RB","RM"],era:"Current",rating:79},
+    {id:uid(),name:"Kevin Álvarez",positions:["RB","RM"],era:"Current",rating:77},
+    {id:uid(),name:"Roberto Alvarado",positions:["CAM","CM","RW"],era:"Current",rating:79},
+    {id:uid(),name:"Orbelin Pineda",positions:["CAM","CM","LW"],era:"Current",rating:79},
+    {id:uid(),name:"Uriel Antuna",positions:["LW","RW","ST"],era:"Current",rating:78},
+    {id:uid(),name:"Alan Pulido",positions:["ST","LW","CF"],era:"Recent",rating:79},
+    {id:uid(),name:"Henry Martín",positions:["ST","CF"],era:"Current",rating:79},
+  ],
+  Germany:[
+    {id:uid(),name:"Franz Beckenbauer",positions:["CB","CDM","CM"],era:"Legend",rating:95},
+    {id:uid(),name:"Gerd Müller",positions:["ST","CF"],era:"Legend",rating:95},
+    {id:uid(),name:"Sepp Maier",positions:["GK"],era:"Legend",rating:89},
+    {id:uid(),name:"Uwe Seeler",positions:["ST","CF"],era:"Legend",rating:87},
+    {id:uid(),name:"Helmut Rahn",positions:["RW","ST"],era:"Legend",rating:83},
+    {id:uid(),name:"Horst Hrubesch",positions:["ST","CF"],era:"Legend",rating:81},
+    {id:uid(),name:"Berti Vogts",positions:["RB","CB"],era:"Legend",rating:83},
+    {id:uid(),name:"Paul Breitner",positions:["LB","CM","CDM"],era:"Legend",rating:85},
+    {id:uid(),name:"Andreas Brehme",positions:["LB","LM"],era:"Legend",rating:85},
+    {id:uid(),name:"Karl-Heinz Rummenigge",positions:["ST","RW","CF"],era:"Legend",rating:90},
+    {id:uid(),name:"Rudi Völler",positions:["ST","CF","LW"],era:"Legend",rating:86},
+    {id:uid(),name:"Bernd Schuster",positions:["CM","CAM"],era:"Legend",rating:85},
+    {id:uid(),name:"Karl-Heinz Förster",positions:["CB"],era:"Legend",rating:82},
+    {id:uid(),name:"Thomas Berthold",positions:["RB","CB"],era:"Legend",rating:81},
+    {id:uid(),name:"Lothar Matthäus",positions:["CDM","CM","CAM"],era:"Legend",rating:93},
+    {id:uid(),name:"Stefan Effenberg",positions:["CM","CAM"],era:"Legend",rating:85},
+    {id:uid(),name:"Jürgen Klinsmann",positions:["ST","CF","RW"],era:"Legend",rating:87},
+    {id:uid(),name:"Oliver Kahn",positions:["GK"],era:"Legend",rating:91},
+    {id:uid(),name:"Michael Ballack",positions:["CM","CAM","CDM"],era:"Legend",rating:89},
+    {id:uid(),name:"Miroslav Klose",positions:["ST","CF","RW"],era:"Legend",rating:88},
+    {id:uid(),name:"Philipp Lahm",positions:["RB","LB","CM"],era:"Legend",rating:90},
+    {id:uid(),name:"Manuel Neuer",positions:["GK"],era:"Recent",rating:91},
+    {id:uid(),name:"Bastian Schweinsteiger",positions:["CM","CDM"],era:"Recent",rating:88},
+    {id:uid(),name:"Toni Kroos",positions:["CM","CDM","CAM"],era:"Recent",rating:89},
+    {id:uid(),name:"Mesut Özil",positions:["CAM","CM","RW"],era:"Recent",rating:87},
+    {id:uid(),name:"Thomas Müller",positions:["CAM","RW","ST","CF"],era:"Recent",rating:87},
+    {id:uid(),name:"Mats Hummels",positions:["CB"],era:"Recent",rating:87},
+    {id:uid(),name:"İlkay Gündogan",positions:["CM","CAM","CDM"],era:"Recent",rating:85},
+    {id:uid(),name:"Joshua Kimmich",positions:["CDM","CM","RB"],era:"Current",rating:88},
+    {id:uid(),name:"Antonio Rüdiger",positions:["CB"],era:"Current",rating:85},
+    {id:uid(),name:"Leroy Sané",positions:["LW","RW","ST"],era:"Current",rating:85},
+    {id:uid(),name:"Serge Gnabry",positions:["RW","LW","ST"],era:"Current",rating:84},
+    {id:uid(),name:"Kai Havertz",positions:["CAM","ST","LW"],era:"Current",rating:84},
+    {id:uid(),name:"Jamal Musiala",positions:["CAM","CM","LW"],era:"Current",rating:87},
+    {id:uid(),name:"Robin Gosens",positions:["LB","LW","LM"],era:"Recent",rating:80},
+    // ── 2014 WC Winners Additions ──
+    {id:uid(),name:"Mario Götze",positions:["CAM","CF","LW"],era:"Recent",rating:86},
+    {id:uid(),name:"Jérôme Boateng",positions:["CB","RB"],era:"Recent",rating:87},
+    {id:uid(),name:"Sami Khedira",positions:["CDM","CM"],era:"Recent",rating:86},
+    {id:uid(),name:"Lukas Podolski",positions:["LW","ST","CF","LM"],era:"Recent",rating:85},
+    {id:uid(),name:"Per Mertesacker",positions:["CB"],era:"Recent",rating:85},
+    {id:uid(),name:"André Schürrle",positions:["LW","RW","LM"],era:"Recent",rating:83},
+    {id:uid(),name:"Julian Draxler",positions:["LW","CAM","LM"],era:"Recent",rating:82},
+    {id:uid(),name:"Benedikt Höwedes",positions:["CB","LB","RB"],era:"Recent",rating:82},
+    {id:uid(),name:"Matthias Ginter",positions:["CB","CDM","RB"],era:"Recent",rating:82},
+    {id:uid(),name:"Roman Weidenfeller",positions:["GK"],era:"Recent",rating:83},
+    // ── 1990 / Legends Additions ──
+    {id:uid(),name:"Matthias Sammer",positions:["CB","CDM"],era:"Legend",rating:91},
+    {id:uid(),name:"Jürgen Kohler",positions:["CB"],era:"Legend",rating:88},
+    {id:uid(),name:"Thomas Häßler",positions:["RW","CAM","RM"],era:"Legend",rating:87},
+    {id:uid(),name:"Pierre Littbarski",positions:["RW","CAM","LW"],era:"Legend",rating:87},
+    {id:uid(),name:"Bodo Illgner",positions:["GK"],era:"Legend",rating:86},
+    {id:uid(),name:"Guido Buchwald",positions:["CB","CDM"],era:"Legend",rating:86},
+    {id:uid(),name:"Andreas Möller",positions:["CAM","CM"],era:"Legend",rating:86},
+    {id:uid(),name:"Oliver Bierhoff",positions:["ST"],era:"Legend",rating:85},
+    {id:uid(),name:"Oliver Neuville",positions:["ST","RW"],era:"Legend",rating:81},
+    {id:uid(),name:"Bernd Schneider",positions:["RM","RW","CM"],era:"Legend",rating:83},
+    {id:uid(),name:"Dietmar Hamann",positions:["CDM","CM"],era:"Legend",rating:84},
+    {id:uid(),name:"Jens Lehmann",positions:["GK"],era:"Legend",rating:87},
+    {id:uid(),name:"Torsten Frings",positions:["CDM","CM","RM"],era:"Legend",rating:84},
+    {id:uid(),name:"Mehmet Scholl",positions:["CAM","LM","RM"],era:"Legend",rating:84},
+    // ── Modern Era Additions ──
+    {id:uid(),name:"Florian Wirtz",positions:["CAM","LW","RW"],era:"Current",rating:87},
+    {id:uid(),name:"Niclas Füllkrug",positions:["ST"],era:"Current",rating:82},
+    {id:uid(),name:"David Raum",positions:["LB","LWB"],era:"Current",rating:81},
+    {id:uid(),name:"Nico Schlotterbeck",positions:["CB"],era:"Current",rating:82},
+    {id:uid(),name:"Niklas Süle",positions:["CB","RB"],era:"Current",rating:84},
+    {id:uid(),name:"Leon Goretzka",positions:["CM","CDM","CAM"],era:"Current",rating:85},
+  ],
+  Uruguay:[
+    {id:uid(),name:"Juan Alberto Schiaffino",positions:["CAM","CM"],era:"Legend",rating:88},
+    {id:uid(),name:"Obdulio Varela",positions:["CDM","CM"],era:"Legend",rating:84},
+    {id:uid(),name:"José Nasazzi",positions:["RB","CB"],era:"Legend",rating:84},
+    {id:uid(),name:"Óscar Míguez",positions:["ST","CF"],era:"Legend",rating:79},
+    {id:uid(),name:"Enzo Francescoli",positions:["CAM","ST","CF"],era:"Legend",rating:87},
+    {id:uid(),name:"Álvaro Recoba",positions:["CAM","LW","ST"],era:"Legend",rating:83},
+    {id:uid(),name:"Rubén Sosa",positions:["LW","ST"],era:"Legend",rating:80},
+    {id:uid(),name:"Gustavo Poyet",positions:["CM","CAM"],era:"Legend",rating:82},
+    {id:uid(),name:"Pablo Bengoechea",positions:["CM","CAM"],era:"Legend",rating:78},
+    {id:uid(),name:"Diego Forlán",positions:["CAM","ST","CF","RW"],era:"Legend",rating:86},
+    {id:uid(),name:"Fernando Muslera",positions:["GK"],era:"Recent",rating:82},
+    {id:uid(),name:"Diego Godín",positions:["CB"],era:"Recent",rating:88},
+    {id:uid(),name:"Martín Cáceres",positions:["RB","CB"],era:"Recent",rating:79},
+    {id:uid(),name:"Maximiliano Pereira",positions:["RB","RM"],era:"Recent",rating:77},
+    {id:uid(),name:"Sebastián Coates",positions:["CB"],era:"Recent",rating:78},
+    {id:uid(),name:"Diego Pérez",positions:["CDM","CM"],era:"Legend",rating:76},
+    {id:uid(),name:"Matías Vecino",positions:["CM","CDM"],era:"Recent",rating:80},
+    {id:uid(),name:"Luis Suárez",positions:["ST","CF","LW"],era:"Recent",rating:90},
+    {id:uid(),name:"Edinson Cavani",positions:["ST","CF","LW"],era:"Recent",rating:88},
+    {id:uid(),name:"Ronald Araújo",positions:["CB","RB"],era:"Current",rating:86},
+    {id:uid(),name:"José María Giménez",positions:["CB"],era:"Current",rating:84},
+    {id:uid(),name:"Federico Valverde",positions:["CM","CDM","CAM"],era:"Current",rating:88},
+    {id:uid(),name:"Rodrigo Bentancur",positions:["CM","CDM"],era:"Current",rating:83},
+    {id:uid(),name:"Darwin Núñez",positions:["ST","LW","CF"],era:"Current",rating:85},
+    {id:uid(),name:"Nahitan Nández",positions:["CM","RM","RB"],era:"Current",rating:80},
+    {id:uid(),name:"Agustín Canobbio",positions:["LW","RW"],era:"Current",rating:77},
+    {id:uid(),name:"Jorge Fucile",positions:["RB","RM"],era:"Recent",rating:76},
+    {id:uid(),name:"Iván Alonso",positions:["ST","CF"],era:"Legend",rating:78},
+  ],
+  Japan:[
+    {id:uid(),name:"Kazuyoshi Miura",positions:["ST","CF","LW"],era:"Legend",rating:77},
+    {id:uid(),name:"Masashi Nakayama",positions:["ST","CF"],era:"Legend",rating:75},
+    {id:uid(),name:"Hidetoshi Nakata",positions:["CM","CAM","CDM"],era:"Legend",rating:82},
+    {id:uid(),name:"Shunsuke Nakamura",positions:["CAM","CM","RW"],era:"Legend",rating:80},
+    {id:uid(),name:"Yoshikatsu Kawaguchi",positions:["GK"],era:"Legend",rating:78},
+    {id:uid(),name:"Seigo Narazaki",positions:["GK"],era:"Legend",rating:78},
+    {id:uid(),name:"Junichi Inamoto",positions:["CM","CDM"],era:"Legend",rating:77},
+    {id:uid(),name:"Yasuhito Endo",positions:["CDM","CM"],era:"Legend",rating:79},
+    {id:uid(),name:"Daisuke Matsui",positions:["LW","CAM","RW"],era:"Legend",rating:76},
+    {id:uid(),name:"Takayuki Suzuki",positions:["ST","CF"],era:"Legend",rating:74},
+    {id:uid(),name:"Shinji Kagawa",positions:["CAM","LW","CM"],era:"Recent",rating:81},
+    {id:uid(),name:"Keisuke Honda",positions:["CAM","RW","ST","CM"],era:"Recent",rating:82},
+    {id:uid(),name:"Makoto Hasebe",positions:["CDM","CM","CB"],era:"Recent",rating:79},
+    {id:uid(),name:"Maya Yoshida",positions:["CB","RB"],era:"Recent",rating:78},
+    {id:uid(),name:"Yuto Nagatomo",positions:["LB","LM"],era:"Recent",rating:79},
+    {id:uid(),name:"Atsuto Uchida",positions:["RB","RM"],era:"Legend",rating:78},
+    {id:uid(),name:"Shinji Okazaki",positions:["ST","CF","RW"],era:"Recent",rating:79},
+    {id:uid(),name:"Eiji Kawashima",positions:["GK"],era:"Recent",rating:77},
+    {id:uid(),name:"Shuichi Gonda",positions:["GK"],era:"Current",rating:77},
+    {id:uid(),name:"Takehiro Tomiyasu",positions:["RB","CB"],era:"Current",rating:81},
+    {id:uid(),name:"Ko Itakura",positions:["CB","CDM"],era:"Current",rating:80},
+    {id:uid(),name:"Wataru Endo",positions:["CDM","CM"],era:"Current",rating:81},
+    {id:uid(),name:"Daichi Kamada",positions:["CAM","CM"],era:"Current",rating:81},
+    {id:uid(),name:"Takumi Minamino",positions:["LW","CAM","RW","ST"],era:"Current",rating:80},
+    {id:uid(),name:"Kaoru Mitoma",positions:["LW","RW","ST"],era:"Current",rating:82},
+    {id:uid(),name:"Ritsu Doan",positions:["LW","RW","CAM"],era:"Current",rating:80},
+    {id:uid(),name:"Ao Tanaka",positions:["CM","CDM"],era:"Current",rating:79},
+    {id:uid(),name:"Junya Ito",positions:["RW","RM","RB"],era:"Current",rating:80},
+    {id:uid(),name:"Koki Machida",positions:["CB"],era:"Current",rating:77},
+    {id:uid(),name:"Yuki Soma",positions:["RW","CM"],era:"Current",rating:77},
+  ],
+  Senegal:[
+    {id:uid(),name:"Sadio Mané",positions:["LW","ST","RW","CF"],era:"Current",rating:89},
+    {id:uid(),name:"Kalidou Koulibaly",positions:["CB"],era:"Recent",rating:87},
+    {id:uid(),name:"Édouard Mendy",positions:["GK"],era:"Current",rating:84},
+    {id:uid(),name:"Idrissa Gueye",positions:["CDM","CM"],era:"Recent",rating:81},
+    {id:uid(),name:"Ismaïla Sarr",positions:["RW","LW","ST"],era:"Current",rating:82},
+    {id:uid(),name:"Nicolas Jackson",positions:["ST","CF","RW"],era:"Current",rating:81},
+    {id:uid(),name:"Iliman Ndiaye",positions:["RW","CAM","LW"],era:"Current",rating:81},
+    {id:uid(),name:"Pape Matar Sarr",positions:["CM","CDM"],era:"Current",rating:80},
+    {id:uid(),name:"Krepin Diatta",positions:["RW","LW"],era:"Current",rating:79},
+    {id:uid(),name:"El Hadji Diouf",positions:["RW","ST","CF","LW"],era:"Legend",rating:80},
+    {id:uid(),name:"Khalilou Fadiga",positions:["CAM","CM","LW"],era:"Legend",rating:78},
+    {id:uid(),name:"Aliou Cissé",positions:["CDM","CM"],era:"Legend",rating:77},
+    {id:uid(),name:"Pape Bouba Diop",positions:["CM","CDM"],era:"Legend",rating:77},
+    {id:uid(),name:"Salif Diao",positions:["CDM","CM"],era:"Legend",rating:75},
+    {id:uid(),name:"Henri Camara",positions:["ST","LW","CF"],era:"Legend",rating:77},
+    {id:uid(),name:"Tony Sylva",positions:["GK"],era:"Legend",rating:76},
+    {id:uid(),name:"Ferdinand Coly",positions:["LB","CB"],era:"Legend",rating:75},
+    {id:uid(),name:"Omar Daf",positions:["RB","CB"],era:"Legend",rating:74},
+    {id:uid(),name:"Lamine Diatta",positions:["CB","RB"],era:"Legend",rating:74},
+    {id:uid(),name:"Demba Ba",positions:["ST","CF"],era:"Recent",rating:80},
+    {id:uid(),name:"Papiss Cissé",positions:["ST","CF"],era:"Recent",rating:79},
+    {id:uid(),name:"Cheikhou Kouyaté",positions:["CDM","CM","CB"],era:"Recent",rating:78},
+    {id:uid(),name:"Lamine Gassama",positions:["RB","RM"],era:"Recent",rating:76},
+    {id:uid(),name:"Bamba Dieng",positions:["ST","LW"],era:"Current",rating:78},
+    {id:uid(),name:"Nampalys Mendy",positions:["CDM","CM"],era:"Recent",rating:77},
+    {id:uid(),name:"Abdou Diallo",positions:["CB","LB"],era:"Recent",rating:78},
+    {id:uid(),name:"Pathé Ciss",positions:["CDM","CM"],era:"Current",rating:76},
+    {id:uid(),name:"Famara Diédhiou",positions:["ST","CF"],era:"Recent",rating:76},
+  ],
+  Switzerland:[
+    {id:uid(),name:"Stéphane Chapuisat",positions:["ST","CF","RW"],era:"Legend",rating:82},
+    {id:uid(),name:"Alexander Frei",positions:["ST","CF","RW"],era:"Legend",rating:79},
+    {id:uid(),name:"Hakan Yakin",positions:["CAM","CM","ST"],era:"Legend",rating:80},
+    {id:uid(),name:"Ludovic Magnin",positions:["LB"],era:"Legend",rating:75},
+    {id:uid(),name:"Patrick Müller",positions:["CB"],era:"Legend",rating:77},
+    {id:uid(),name:"Benjamin Huggel",positions:["CM","CDM"],era:"Legend",rating:74},
+    {id:uid(),name:"Daniel Clerc",positions:["LB","LM"],era:"Legend",rating:73},
+    {id:uid(),name:"Tranquillo Barnetta",positions:["LM","LW","CAM"],era:"Legend",rating:77},
+    {id:uid(),name:"Johan Vonlanthen",positions:["RW","LW","ST"],era:"Legend",rating:74},
+    {id:uid(),name:"Marco Streller",positions:["ST","CF"],era:"Legend",rating:76},
+    {id:uid(),name:"Diego Benaglio",positions:["GK"],era:"Recent",rating:78},
+    {id:uid(),name:"Stephan Lichtsteiner",positions:["RB","RM"],era:"Recent",rating:82},
+    {id:uid(),name:"Philippe Senderos",positions:["CB"],era:"Legend",rating:76},
+    {id:uid(),name:"Johan Djourou",positions:["CB","RB"],era:"Recent",rating:75},
+    {id:uid(),name:"Blerim Džemaili",positions:["CM","CAM","CDM"],era:"Recent",rating:78},
+    {id:uid(),name:"Valon Behrami",positions:["CDM","CM"],era:"Recent",rating:78},
+    {id:uid(),name:"Xherdan Shaqiri",positions:["RW","LW","CAM","ST"],era:"Recent",rating:82},
+    {id:uid(),name:"Granit Xhaka",positions:["CDM","CM"],era:"Current",rating:83},
+    {id:uid(),name:"Ricardo Rodríguez",positions:["LB","LM"],era:"Recent",rating:79},
+    {id:uid(),name:"Yann Sommer",positions:["GK"],era:"Recent",rating:84},
+    {id:uid(),name:"Gregor Kobel",positions:["GK"],era:"Current",rating:84},
+    {id:uid(),name:"Manuel Akanji",positions:["CB"],era:"Current",rating:84},
+    {id:uid(),name:"Nico Elvedi",positions:["CB","LB"],era:"Current",rating:79},
+    {id:uid(),name:"Fabian Schär",positions:["CB","CDM"],era:"Current",rating:80},
+    {id:uid(),name:"Silvan Widmer",positions:["RB","RM"],era:"Current",rating:78},
+    {id:uid(),name:"Remo Freuler",positions:["CM","CDM"],era:"Recent",rating:79},
+    {id:uid(),name:"Michel Aebischer",positions:["CM","CDM"],era:"Current",rating:78},
+    {id:uid(),name:"Ruben Vargas",positions:["LW","LM","CAM"],era:"Current",rating:79},
+    {id:uid(),name:"Noah Okafor",positions:["LW","ST","RW"],era:"Current",rating:80},
+    {id:uid(),name:"Dan Ndoye",positions:["RW","LW"],era:"Current",rating:79},
+    {id:uid(),name:"Breel Embolo",positions:["ST","LW","CF"],era:"Current",rating:80},
+    {id:uid(),name:"Zeki Amdouni",positions:["ST","CF"],era:"Current",rating:78},
+  ],
+  Denmark:[
+    {id:uid(),name:"Peter Schmeichel",positions:["GK"],era:"Legend",rating:91},
+    {id:uid(),name:"Morten Olsen",positions:["CB","CDM"],era:"Legend",rating:80},
+    {id:uid(),name:"Allan Simonsen",positions:["ST","CAM","CF"],era:"Legend",rating:85},
+    {id:uid(),name:"Preben Elkjær",positions:["ST","LW","CF"],era:"Legend",rating:85},
+    {id:uid(),name:"Michael Laudrup",positions:["CAM","RW","LW","ST"],era:"Legend",rating:91},
+    {id:uid(),name:"Brian Laudrup",positions:["RW","LW","CAM","ST"],era:"Legend",rating:88},
+    {id:uid(),name:"Jon Dahl Tomasson",positions:["ST","CF","RW"],era:"Legend",rating:80},
+    {id:uid(),name:"Søren Lerby",positions:["CM","CDM"],era:"Legend",rating:79},
+    {id:uid(),name:"Frank Arnesen",positions:["RM","CAM","CM"],era:"Legend",rating:77},
+    {id:uid(),name:"John Sivebæk",positions:["RB","RM"],era:"Legend",rating:76},
+    {id:uid(),name:"Thomas Helveg",positions:["RB","RM","CM"],era:"Legend",rating:79},
+    {id:uid(),name:"Jesper Olsen",positions:["LW","LM","CAM"],era:"Legend",rating:79},
+    {id:uid(),name:"Henrik Larsen",positions:["CAM","CM","ST"],era:"Legend",rating:79},
+    {id:uid(),name:"Peter Møller",positions:["ST","CF"],era:"Legend",rating:78},
+    {id:uid(),name:"Stig Tøfting",positions:["CDM","CM"],era:"Legend",rating:78},
+    {id:uid(),name:"Jan Heintze",positions:["LB"],era:"Legend",rating:74},
+    {id:uid(),name:"Henrik Andersen",positions:["CB"],era:"Legend",rating:75},
+    {id:uid(),name:"Nicklas Bendtner",positions:["ST","CF"],era:"Recent",rating:77},
+    {id:uid(),name:"Kasper Schmeichel",positions:["GK"],era:"Recent",rating:82},
+    {id:uid(),name:"Simon Kjær",positions:["CB","RB"],era:"Recent",rating:81},
+    {id:uid(),name:"Thomas Delaney",positions:["CDM","CM"],era:"Recent",rating:79},
+    {id:uid(),name:"Christian Eriksen",positions:["CAM","CM","RW"],era:"Current",rating:86},
+    {id:uid(),name:"Andreas Christensen",positions:["CB","CDM"],era:"Current",rating:82},
+    {id:uid(),name:"Pierre-Emile Højbjerg",positions:["CDM","CM"],era:"Current",rating:81},
+    {id:uid(),name:"Joakim Mæhle",positions:["LB","RB","LM"],era:"Current",rating:79},
+    {id:uid(),name:"Rasmus Højlund",positions:["ST","CF"],era:"Current",rating:82},
+    {id:uid(),name:"Viktor Gyökeres",positions:["ST","CF"],era:"Current",rating:84},
+    {id:uid(),name:"Mathias Jensen",positions:["CM","CAM"],era:"Current",rating:77},
+    {id:uid(),name:"Daniel Wass",positions:["RM","CM","RB"],era:"Recent",rating:77},
+    {id:uid(),name:"Yussuf Poulsen",positions:["ST","LW"],era:"Recent",rating:78},
+    {id:uid(),name:"Martin Braithwaite",positions:["ST","LW","CF"],era:"Recent",rating:76},
+  ],
+};
+
+const ALL_PLAYERS = Object.entries(PLAYERS).flatMap(([country,arr])=>arr.map(p=>({...p,country})));
+const COUNTRIES = Object.keys(PLAYERS);
+const FLAGS = {Argentina:"🇦🇷",France:"🇫🇷",England:"🇬🇧",Belgium:"🇧🇪",Brazil:"🇧🇷",Portugal:"🇵🇹",Netherlands:"🇳🇱",Spain:"🇪🇸",Italy:"🇮🇹",Croatia:"🇭🇷",Morocco:"🇲🇦",Colombia:"🇨🇴",USA:"🇺🇸",Mexico:"🇲🇽",Germany:"🇩🇪",Uruguay:"🇺🇾",Japan:"🇯🇵",Senegal:"🇸🇳",Switzerland:"🇨🇭",Denmark:"🇩🇰"};
+
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+const bp = p => p?.match(/^([A-Za-z]+)/)?.[0]?.toUpperCase() || p;
+const PC = {GK:"#f59e0b",CB:"#3b82f6",RB:"#60a5fa",LB:"#60a5fa",CDM:"#8b5cf6",CM:"#a855f7",CAM:"#ec4899",RM:"#f97316",LM:"#f97316",RW:"#ef4444",LW:"#ef4444",ST:"#22c55e",CF:"#22c55e"};
+const pc = p => PC[bp(p)]||"#6b7280";
+
+function dedupePos(formation) {
+  const seen={};
+  return formation.positions.map(p=>{seen[p]=(seen[p]||0)+1;return seen[p]>1?p+seen[p]:p;});
+}
+
+function getRandFormations(n=5){
+  return [...FORMATIONS].sort(()=>Math.random()-0.5).slice(0,n);
+}
+
+function drawManagerPool(usedNames, n=5){
+  const avail = MANAGERS.filter(m=>!usedNames.has(m.name));
+  return [...avail].sort(()=>Math.random()-0.5).slice(0,Math.min(n,avail.length));
+}
+
+// ═══════════════════════════════════════════════
+//  SIMULATION ENGINE
+// ═══════════════════════════════════════════════
+function ratePlayer(pl, pos, manager) {
+  if (!pl) return 50;
+  let base = pl.isLigaMX ? 62+Math.random()*12 : (pl.rating||70)+(Math.random()*10-5);
+  if (pl.positions?.[0]===bp(pos)) base+=8;
+  else if (pl.positions?.includes(bp(pos))) base+=3;
+  if (manager?.bonus?.[bp(pos)]) base+=manager.bonus[bp(pos)];
+  if (pl.era==="Legend") base+=7;
+  if (pl.era==="Current") base+=3;
+  return Math.min(99,base);
+}
+
+function teamRating(team) {
+  if (!team?.players) return 55;
+  const playerList = Object.values(team.players).filter(Boolean);
+  const names = playerList.map(p=>p.name);
+  const chem = calcChemistry(playerList);
+  const bond = getManagerBondBonus(team.manager, names);
+  const vals = Object.entries(team.players).map(([p,pl])=>ratePlayer(pl,p,team.manager));
+  const avg = vals.reduce((a,b)=>a+b,0)/Math.max(vals.length,1);
+  return Math.min(99, avg + chem.bonus*0.15 + bond.bonus*0.1);
+}
+
+function simPenalties(){
+  const kicks=[]; let sA=0,sB=0;
+  for(let i=0;i<5;i++){const a=Math.random()>0.25,b=Math.random()>0.25;kicks.push({kick:i+1,A:a,B:b});if(a)sA++;if(b)sB++;}
+  let r=6;
+  while(sA===sB&&r<=20){const a=Math.random()>0.25,b=Math.random()>0.25;kicks.push({kick:r,A:a,B:b,sudden:true});if(a)sA++;if(b)sB++;if(a!==b)break;r++;}
+  return{kicks,sA,sB,winner:sA>sB?"A":"B"};
+}
+
+function generateMatchEvents(tA, tB, rA, rB, redA=[], redB=[]) {
+  const events=[]; const pA=rA/(rA+rB); const goals={A:0,B:0};
+  const totalGoals=Math.floor(Math.random()*7);
+  const playersA=Object.values(tA.players||{}).filter(Boolean).filter(p=>!redA.includes(p.id));
+  const playersB=Object.values(tB.players||{}).filter(Boolean).filter(p=>!redB.includes(p.id));
+  const attackA=playersA.filter(p=>["ST","CF","LW","RW","CAM"].some(pos=>p.positions?.includes(pos)));
+  const attackB=playersB.filter(p=>["ST","CF","LW","RW","CAM"].some(pos=>p.positions?.includes(pos)));
+  const midA=playersA.filter(p=>["CM","CDM","CAM","RM","LM"].some(pos=>p.positions?.includes(pos)));
+  const midB=playersB.filter(p=>["CM","CDM","CAM","RM","LM"].some(pos=>p.positions?.includes(pos)));
+  const pick=arr=>arr.length?arr[Math.floor(Math.random()*arr.length)]:null;
+  for(let i=0;i<totalGoals;i++){
+    const minute=Math.floor(Math.random()*90)+1, isA=Math.random()<pA;
+    const scorer=pick(isA?attackA:attackB)||pick(isA?playersA:playersB);
+    const assister=pick((isA?midA:midB).filter(p=>p?.id!==scorer?.id));
+    if(scorer){events.push({type:"goal",minute,team:isA?"A":"B",scorer:scorer.name,assist:assister?.name||null});if(isA)goals.A++;else goals.B++;}
+  }
+  const allA=playersA.filter(p=>!p.positions?.includes("GK")),allB=playersB.filter(p=>!p.positions?.includes("GK"));
+  if(Math.random()<0.08&&allA.length){const p=pick(allA);events.push({type:"red",minute:Math.floor(Math.random()*90)+1,team:"A",player:p.name,playerId:p.id});}
+  if(Math.random()<0.08&&allB.length){const p=pick(allB);events.push({type:"red",minute:Math.floor(Math.random()*90)+1,team:"B",player:p.name,playerId:p.id});}
+  events.sort((a,b)=>a.minute-b.minute);
+  return{events,goals,newRedA:events.filter(e=>e.type==="red"&&e.team==="A").map(e=>e.playerId),newRedB:events.filter(e=>e.type==="red"&&e.team==="B").map(e=>e.playerId)};
+}
+
+function simFullSeries(teamA, teamB) {
+  const games=[]; let wA=0,wB=0; const serRedA=[],serRedB=[];
+  for(let g=0;g<3;g++){
+    if(wA>=2||wB>=2)break;
+    const rA=teamRating(teamA), rB=teamRating(teamB);
+    const{events,goals,newRedA,newRedB}=generateMatchEvents(teamA,teamB,rA,rB,serRedA,serRedB);
+    let gA=goals.A,gB=goals.B,etResult=null,pkResult=null;
+    let winner=gA>gB?"A":gB>gA?"B":"D";
+    if(winner==="D"){
+      const pA=rA/(rA+rB),r=Math.random();
+      if(r<pA*0.3){gA++;etResult={gA:1,gB:0};}else if(r>1-(1-pA)*0.3){gB++;etResult={gA:0,gB:1};}else{etResult={gA:0,gB:0};}
+      winner=gA>gB?"A":gA<gB?"B":"D";
+      if(winner==="D"){pkResult=simPenalties();winner=pkResult.winner;}
+    }
+    if(winner==="A")wA++;else if(winner==="B")wB++;
+    const rcA=events.filter(e=>e.type==="red"&&e.team==="A").map(e=>e.playerId);
+    const rcB=events.filter(e=>e.type==="red"&&e.team==="B").map(e=>e.playerId);
+    serRedA.push(...rcA);serRedB.push(...rcB);
+    if(g>0){serRedA.splice(0,rcA.length);serRedB.splice(0,rcB.length);}
+    games.push({gA,gB,events,etResult,pkResult,winner,rA:rA.toFixed(1),rB:rB.toFixed(1)});
+  }
+  return{games,wA,wB,winner:wA>=wB?"A":"B"};
+}
+
+// ═══════════════════════════════════════════════
+//  PITCH LAYOUT
+// ═══════════════════════════════════════════════
+const PL={GK:[50,90],LB:[12,70],RB:[88,70],CB:[35,72],CB2:[65,72],CB3:[50,74],LM:[8,52],RM:[92,52],CDM:[35,55],CDM2:[65,55],CM:[28,48],CM2:[50,48],CM3:[72,48],CAM:[50,35],CAM2:[28,35],CAM3:[72,35],LW:[12,22],RW:[88,22],ST:[50,14],ST2:[32,14],CF:[68,14]};
+function getPitchPos(posKey){const base=bp(posKey),n=posKey.match(/\d+$/)?.[0],key=n?base+n:base;return PL[key]||PL[base]||[50,50];}
+
+// ═══════════════════════════════════════════════
+//  CLAUDE AI ANALYSIS
+// ═══════════════════════════════════════════════
+async function generateAnalysis(seriesData, teams, playerNames) {
+  const summaries = seriesData.map(sr => {
+    const tA=teams[sr.teamA], tB=teams[sr.teamB];
+    const chemA=calcChemistry(Object.values(tA.players||{}).filter(Boolean));
+    const chemB=calcChemistry(Object.values(tB.players||{}).filter(Boolean));
+    const bondA=getManagerBondBonus(tA.manager, Object.values(tA.players||{}).filter(Boolean).map(p=>p.name));
+    const bondB=getManagerBondBonus(tB.manager, Object.values(tB.players||{}).filter(Boolean).map(p=>p.name));
+    const scorersA={}, scorersB={};
+    for(const g of sr.series.games) for(const ev of g.events) if(ev.type==="goal"){const d=ev.team==="A"?scorersA:scorersB;d[ev.scorer]=(d[ev.scorer]||0)+1;}
+    const topA=Object.entries(scorersA).sort((a,b)=>b[1]-a[1])[0];
+    const topB=Object.entries(scorersB).sort((a,b)=>b[1]-a[1])[0];
+    return {
+      pA:playerNames[sr.teamA], pB:playerNames[sr.teamB],
+      winner:sr.series.winner==="A"?playerNames[sr.teamA]:playerNames[sr.teamB],
+      scores:sr.series.games.map(g=>`${g.gA}-${g.gB}`).join(", "),
+      formA:tA.formation?.name, formB:tB.formation?.name,
+      manA:tA.manager?.name+" ("+tA.manager?.style+")", manB:tB.manager?.name+" ("+tB.manager?.style+")",
+      manProsA:tA.manager?.pros, manConsA:tA.manager?.cons,
+      manProsB:tB.manager?.pros, manConsB:tB.manager?.cons,
+      chemA:chemA.bonus+" ("+chemA.bonuses.map(b=>b.label).join("; ")+")",
+      chemB:chemB.bonus+" ("+chemB.bonuses.map(b=>b.label).join("; ")+")",
+      bondsA:bondA.bonds.join(", ")||"none", bondsB:bondB.bonds.join(", ")||"none",
+      ratingA:sr.series.games[0]?.rA, ratingB:sr.series.games[0]?.rB,
+      redA:sr.series.games.flatMap(g=>g.events.filter(e=>e.type==="red"&&e.team==="A").map(e=>e.player)).join(", ")||"none",
+      redB:sr.series.games.flatMap(g=>g.events.filter(e=>e.type==="red"&&e.team==="B").map(e=>e.player)).join(", ")||"none",
+      topA:topA?`${topA[0]} (${topA[1]} goals)`:"none",
+      topB:topB?`${topB[0]} (${topB[1]} goals)`:"none",
+      wA:sr.series.wA, wB:sr.series.wB,
+    };
+  });
+
+  const teamStats = teams.map((t,i)=>{
+    const chem=calcChemistry(Object.values(t.players||{}).filter(Boolean));
+    const bond=getManagerBondBonus(t.manager, Object.values(t.players||{}).filter(Boolean).map(p=>p.name));
+    const wins=seriesData.filter(sr=>(sr.teamA===i&&sr.series.winner==="A")||(sr.teamB===i&&sr.series.winner==="B")).length;
+    const played=seriesData.filter(sr=>sr.teamA===i||sr.teamB===i).length;
+    const gf=seriesData.reduce((acc,sr)=>{if(sr.teamA===i)return acc+sr.series.games.reduce((a,g)=>a+g.gA,0);if(sr.teamB===i)return acc+sr.series.games.reduce((a,g)=>a+g.gB,0);return acc;},0);
+    const ga=seriesData.reduce((acc,sr)=>{if(sr.teamA===i)return acc+sr.series.games.reduce((a,g)=>a+g.gB,0);if(sr.teamB===i)return acc+sr.series.games.reduce((a,g)=>a+g.gA,0);return acc;},0);
+    const keyPlayers=Object.values(t.players||{}).filter(p=>p&&p.rating>=88).map(p=>p.name).join(", ")||"solid squad";
+    return {name:playerNames[i], formation:t.formation?.name, manager:t.manager?.name, manPros:t.manager?.pros, manCons:t.manager?.cons, wins, played, gf, ga, chemBonus:chem.bonus, chemLabels:chem.bonuses.map(b=>b.label).join("; ")||"none", bonds:bond.bonds.join(", ")||"none", keyPlayers};
+  });
+
+  const prompt = `You are a sharp football analyst. Give a BRIEF pundit-style breakdown using emojis as bullets. One punchy sentence max per point. Use player names when relevant.
+
+MATCHUPS:
+${summaries.map(s=>`${s.pA}(${s.formA}, ${s.manA.split("(")[0].trim()}, rtg:${s.ratingA}, chem:+${s.chemA.split(" ")[0]}, scorer:${s.topA}, reds:${s.redA}) vs ${s.pB}(${s.formB}, ${s.manB.split("(")[0].trim()}, rtg:${s.ratingB}, chem:+${s.chemB.split(" ")[0]}, scorer:${s.topB}, reds:${s.redB}) → ${s.winner} wins ${s.wA}-${s.wB} (${s.scores})`).join("\n")}
+
+TEAMS:
+${teamStats.map(t=>`${t.name}: ${t.wins}W/${t.played}, ${t.gf}GF ${t.ga}GA, ${t.formation}, ${t.manager}, chem+${t.chemBonus}(${t.chemLabels}), bonds:${t.bonds}, stars:${t.keyPlayers}`).join("\n")}
+
+OUTPUT — use exactly this structure:
+
+⚔️ MATCHUP BREAKDOWNS
+[For each matchup:]
+🏆 [Winner] beat [Loser] ([score])
+💪 [Why winner won — formation/manager/player brilliance, one sentence]
+😤 [Loser's key weakness — e.g. "weak midfield was overrun" or "no pace up front"]
+⚡ [One standout moment — scorer, red card, chemistry bond, or tactical edge]
+
+📋 TEAM SNAPSHOTS
+[For each team, exactly 2 lines:]
+✅ [Name] — [biggest strength, one sentence]
+⚠️ [Name] — [biggest weakness, one sentence]
+
+Short and punchy throughout. No paragraphs.`
+
+  const response = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01"},
+    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:prompt}]})
+  });
+  const data = await response.json();
+  return data.content?.map(c=>c.text||"").join("\n")||"Analysis unavailable.";
+}
+
+// ═══════════════════════════════════════════════
+//  STANDALONE UI COMPONENTS
+// ═══════════════════════════════════════════════
+function Pitch({team,size=260}){
+  if(!team?.formation)return null;
+  const posKeys=dedupePos(team.formation);
+  return(
+    <div style={{position:"relative",width:size,height:size*1.38,background:"repeating-linear-gradient(180deg,#15803d 0,#15803d 24px,#166534 24px,#166534 48px)",borderRadius:10,border:"2px solid #22c55e",margin:"0 auto",overflow:"hidden",flexShrink:0}}>
+      <div style={{position:"absolute",top:"50%",left:"5%",right:"5%",height:1,background:"rgba(255,255,255,0.2)"}}/>
+      <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:40,height:40,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.2)"}}/>
+      {posKeys.map(p=>{const[x,y]=getPitchPos(p);const pl=team.players[p];const init=pl?pl.name.split(" ").map(n=>n[0]).slice(0,2).join(""):"?";const sn=pl?pl.name.split(" ").pop():bp(p);return(
+        <div key={p} style={{position:"absolute",left:`${x}%`,top:`${y}%`,transform:"translate(-50%,-50%)",textAlign:"center",zIndex:2}}>
+          <div style={{width:28,height:28,borderRadius:"50%",background:pl?"#fbbf24":"rgba(255,255,255,0.15)",border:`2px solid ${pl?"#f59e0b":"rgba(255,255,255,0.3)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:7,fontWeight:800,color:pl?"#000":"#fff",margin:"0 auto"}}>{init}</div>
+          <div style={{fontSize:"5.5px",color:"rgba(255,255,255,0.9)",marginTop:1,maxWidth:36,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sn}</div>
+        </div>
+      );})}
+    </div>
+  );
+}
+
+function PBadge({pos}){return <span style={{background:pc(pos),color:"#fff",padding:"2px 6px",borderRadius:4,fontSize:10,fontWeight:700}}>{pos}</span>;}
+
+function TurnDots({phase:ph,turnOrder,formationTurn,managerTurn,playerNames}){
+  return(
+    <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:8}}>
+      {turnOrder.map((pi,ti)=>{
+        const done=ph==="formation"?ti<formationTurn:ph==="manager"?ti<managerTurn:false;
+        const active=ph==="formation"?ti===formationTurn%turnOrder.length:ph==="manager"?ti===managerTurn%turnOrder.length:false;
+        return <div key={pi} title={playerNames[pi]} style={{width:26,height:26,borderRadius:"50%",background:done?"#22c55e":active?"#fbbf24":"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:active?"#000":"#fff",cursor:"default"}}>{done?"✓":ti+1}</div>;
+      })}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════
+//  MAIN APP
+// ════════════════════════════════════════════════════════
+export default function App() {
+  const [phase, setPhase] = useState("welcome");
+  const [numPlayers, setNumPlayers] = useState(0);
+  const [playerNames, setPlayerNames] = useState([]);
+  const [nameInputs, setNameInputs] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [usedManagerNames, setUsedManagerNames] = useState(new Set());
+  const [turnOrder, setTurnOrder] = useState([]);
+  const [formationTurn, setFormationTurn] = useState(0);
+  const [managerTurn, setManagerTurn] = useState(0);
+  const [buildTurn, setBuildTurn] = useState(0);
+  const [spinStep, setSpinStep] = useState("country");
+  const [spunCountry, setSpunCountry] = useState(null);
+  const [spunPos, setSpunPos] = useState(null);
+  const [spinning, setSpinning] = useState(false);
+  const [spinDeg, setSpinDeg] = useState(0);
+  const [spinDeg2, setSpinDeg2] = useState(0);
+  const spinRef = useRef(0); const spinRef2 = useRef(0);
+  const [search, setSearch] = useState("");
+  const [suggs, setSuggs] = useState([]);
+  const [showDD, setShowDD] = useState(false);
+  const [picked, setPicked] = useState(null);
+  const [ligaMXUsed, setLigaMXUsed] = useState(false);
+  const [ligaMXPlayer, setLigaMXPlayer] = useState(null);
+  const [usedIds, setUsedIds] = useState(new Set());
+  const [tourneyResults, setTourneyResults] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [expandedGame, setExpandedGame] = useState(null);
+  // ── Play Again / History ──
+  const [history, setHistory] = useState({ managers: [], formations: [], players: [] });
+
+  const curPlayerIdx = phase==="formation" ? turnOrder[formationTurn%Math.max(turnOrder.length,1)] :
+    phase==="manager" ? turnOrder[managerTurn%Math.max(turnOrder.length,1)] :
+    phase==="build" ? turnOrder[buildTurn%Math.max(turnOrder.length,1)] : 0;
+
+  const curTeam = teams[curPlayerIdx]||null;
+  const getAllPos = t => t?.formation ? dedupePos(t.formation) : [];
+  const getRemaining = t => getAllPos(t).filter(p => !t?.players?.[p]);
+
+  // Setup
+  const confirmNumPlayers = n => { setNumPlayers(n); setNameInputs(Array(n).fill("")); setPhase("names"); };
+  const confirmNames = () => {
+    const names = nameInputs.map((n,i)=>n.trim()||`Player ${i+1}`);
+    setPlayerNames(names);
+    const arr = Array.from({length:names.length},(_,i)=>i).sort(()=>Math.random()-0.5);
+    setTurnOrder(arr);
+    const newTeams = names.map(()=>({formation:null,manager:null,players:{},usedLigaMXNames:new Set(),availFormations:getRandFormations(5),managerOptions:[]}));
+    // Pre-generate manager options for first player (exclude history)
+    const allUsedMgrs = new Set(history.managers);
+    const firstOpts = drawManagerPool(allUsedMgrs, 5);
+    newTeams[arr[0]] = {...newTeams[arr[0]], managerOptions: firstOpts};
+    setTeams(newTeams);
+    setFormationTurn(0);
+    setPhase("formation");
+  };
+
+  // Formation
+  const pickFormation = f => {
+    const idx = turnOrder[formationTurn%turnOrder.length];
+    const updated = teams.map((t,i)=>i===idx?{...t,formation:f}:t);
+    const nextFT = formationTurn+1;
+    // Pre-generate manager options for next player if exists
+    if(nextFT < turnOrder.length) {
+      const nextIdx = turnOrder[nextFT%turnOrder.length];
+      const allUsedMgrs = new Set([...usedManagerNames,...history.managers]);
+      const opts = drawManagerPool(allUsedMgrs, 5);
+      updated[nextIdx] = {...updated[nextIdx], managerOptions: opts};
+    }
+    setTeams(updated);
+    setFormationTurn(nextFT);
+    if(nextFT >= turnOrder.length) { setManagerTurn(0); setPhase("manager"); }
+  };
+
+  // Manager — rotation starts +1 from formation start
+  const pickManager = m => {
+    const idx = turnOrder[managerTurn%turnOrder.length];
+    const newUsed = new Set(usedManagerNames); newUsed.add(m.name);
+    setUsedManagerNames(newUsed);
+    const updated = teams.map((t,i)=>i===idx?{...t,manager:m}:t);
+    const nextMT = managerTurn+1;
+    if(nextMT < turnOrder.length) {
+      const nextIdx = turnOrder[nextMT%turnOrder.length];
+      const allUsedMgrs = new Set([...newUsed,...history.managers]);
+      const opts = drawManagerPool(allUsedMgrs, 5);
+      updated[nextIdx] = {...updated[nextIdx], managerOptions: opts};
+    }
+    setTeams(updated);
+    setManagerTurn(nextMT);
+    if(nextMT >= turnOrder.length) { setBuildTurn(0); setPhase("build"); }
+  };
+
+  // Search
+  useEffect(()=>{
+    if(!search.trim()){setSuggs([]);setShowDD(false);return;}
+    const q=search.toLowerCase();
+    const m=ALL_PLAYERS.filter(p=>p.name.toLowerCase().includes(q)&&!usedIds.has(p.id)&&!history.players.includes(p.id)).slice(0,20);
+    setSuggs(m);setShowDD(m.length>0);
+  },[search,usedIds,history]);
+
+  // Spins
+  const spinCountry = () => {
+    if(spinning)return;
+    setSpinning(true);
+    const country=COUNTRIES[Math.floor(Math.random()*COUNTRIES.length)];
+    const d=spinRef.current+900+Math.random()*360; spinRef.current=d; setSpinDeg(d);
+    setTimeout(()=>{setSpunCountry(country);setSpinning(false);setSpinStep("position");},1200);
+  };
+  const spinPosition = () => {
+    if(spinning||!curTeam)return;
+    setSpinning(true);
+    const rem=getRemaining(curTeam);
+    const pos=rem[Math.floor(Math.random()*rem.length)];
+    const d2=spinRef2.current+900+Math.random()*360; spinRef2.current=d2; setSpinDeg2(d2);
+    setTimeout(()=>{setSpunPos(pos);setSpinning(false);setSpinStep("pick");setSearch("");setSuggs([]);setPicked(null);setLigaMXUsed(false);},1200);
+  };
+
+  const selectSugg = p=>{setPicked(p);setSearch(p.name);setShowDD(false);};
+  const ligaMXAutoFill = ()=>{
+    if(!spunPos||!curTeam)return;
+    if(ligaMXPlayer){
+      setPicked(ligaMXPlayer);setSearch(ligaMXPlayer.name);setShowDD(false);
+      return;
+    }
+    const fb=ligaMXFill(bp(spunPos),curTeam.usedLigaMXNames);
+    setPicked(fb);setSearch(fb.name);setShowDD(false);setLigaMXUsed(true);setLigaMXPlayer(fb);
+  };
+
+  const confirmPick = ()=>{
+    if(!picked||!spunPos||!spunCountry||!curTeam)return;
+    const matchesCountry=picked.country===spunCountry;
+    const finalPlayer=matchesCountry?picked:ligaMXFill(bp(spunPos),curTeam.usedLigaMXNames);
+    const newIds=new Set(usedIds);
+    if(matchesCountry)newIds.add(picked.id);
+    const newLiga=new Set(curTeam.usedLigaMXNames);
+    if(!matchesCountry)newLiga.add(finalPlayer.name);
+    const newPlayers={...curTeam.players,[spunPos]:{...finalPlayer,assignedPos:spunPos,wrongCountry:!matchesCountry}};
+    const updated=teams.map((t,i)=>i===curPlayerIdx?{...t,players:newPlayers,usedLigaMXNames:newLiga}:t);
+    setTeams(updated);setUsedIds(newIds);
+    advanceBuildTurn(updated);
+  };
+
+  const advanceBuildTurn = latestTeams => {
+    setSearch("");setSuggs([]);setPicked(null);setSpunCountry(null);setSpunPos(null);setSpinStep("country");setLigaMXUsed(false);setLigaMXPlayer(null);
+    const n=turnOrder.length;
+    let next=buildTurn+1,loops=0;
+    while(loops<n*12){
+      const idx=turnOrder[next%n];
+      if(getRemaining(latestTeams[idx]).length>0){setBuildTurn(next);return;}
+      next++;loops++;
+    }
+    setPhase("compete");
+  };
+
+  const runCompetition = ()=>{
+    const n=teams.length,results=[];
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) results.push({teamA:i,teamB:j,series:simFullSeries(teams[i],teams[j])});
+    setTourneyResults(results);
+    setPhase("results");
+    // Record history
+    const usedMgrs = teams.map(t=>t.manager?.name).filter(Boolean);
+    const usedForms = teams.map(t=>t.formation?.name).filter(Boolean);
+    const usedPls = teams.flatMap(t=>Object.values(t.players||{}).filter(p=>p&&!p.isLigaMX).map(p=>p.id));
+    setHistory(prev=>({
+      managers:[...prev.managers,...usedMgrs],
+      formations:[...prev.formations,...usedForms],
+      players:[...prev.players,...usedPls]
+    }));
+    setAnalysisLoading(true);
+    generateAnalysis(results,teams,playerNames).then(t=>{setAnalysis(t);setAnalysisLoading(false);}).catch(()=>{setAnalysis("Analysis could not be generated.");setAnalysisLoading(false);});
+  };
+
+  const resetGame = (keepHistory=true)=>{
+    if(!keepHistory) setHistory({managers:[],formations:[],players:[]});
+    setPhase("welcome");setTeams([]);setUsedIds(new Set());setTourneyResults(null);setAnalysis(null);setBuildTurn(0);setFormationTurn(0);setManagerTurn(0);setSpunCountry(null);setSpunPos(null);setSpinStep("country");setSearch("");setSuggs([]);setPicked(null);setUsedManagerNames(new Set());setTurnOrder([]);setLigaMXPlayer(null);
+  };
+
+  // ── UI COMPONENTS ──
+  const S={minHeight:"100vh",background:"linear-gradient(135deg,#0a0e1a 0%,#0d1b2a 50%,#0a0e1a 100%)",fontFamily:"'Georgia',serif",color:"#fff"};
+
+  // ─── SCREENS ───
+  if(phase==="welcome")return(
+    <div style={{...S,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
+      <style>{`@keyframes shimmer{0%{background-position:0%}100%{background-position:200%}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}`}</style>
+      <div style={{fontSize:72,marginBottom:10,animation:"pulse 2s infinite"}}>⚽</div>
+      <h1 style={{fontSize:40,fontWeight:900,margin:"0 0 6px",background:"linear-gradient(90deg,#fbbf24,#f97316,#ef4444,#f97316,#fbbf24)",backgroundSize:"200%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"shimmer 3s linear infinite"}}>WORLD XI BUILDER</h1>
+      <p style={{color:"#475569",fontSize:13,marginTop:6,letterSpacing:"4px",textTransform:"uppercase"}}>Spin · Build · Compete · Dominate</p>
+      <button onClick={()=>setPhase("setup")} style={{marginTop:28,background:"linear-gradient(90deg,#f97316,#ef4444)",border:"none",borderRadius:14,padding:"16px 48px",fontSize:18,fontWeight:800,color:"#fff",cursor:"pointer",boxShadow:"0 0 40px rgba(239,68,68,0.4)"}}>🏆 START GAME</button>
+    </div>
+  );
+
+  if(phase==="setup")return(
+    <div style={{...S,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
+      <h2 style={{fontSize:26,fontWeight:900,color:"#fbbf24",marginBottom:6}}>How many players?</h2>
+      <p style={{color:"#64748b",marginBottom:28,fontSize:13,textAlign:"center"}}>2–6 players · alternating turns · random start order</p>
+      <div style={{display:"flex",gap:14,flexWrap:"wrap",justifyContent:"center"}}>
+        {[2,3,4,5,6].map(n=><button key={n} onClick={()=>confirmNumPlayers(n)} style={{width:76,height:76,background:"rgba(255,255,255,0.06)",border:"2px solid rgba(255,255,255,0.12)",borderRadius:16,fontSize:30,fontWeight:900,color:"#fbbf24",cursor:"pointer"}}>{n}</button>)}
+      </div>
+    </div>
+  );
+
+  if(phase==="names")return(
+    <div style={{...S,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
+      <h2 style={{fontSize:24,fontWeight:900,color:"#fbbf24",marginBottom:20}}>Enter Player Names</h2>
+      <div style={{display:"flex",flexDirection:"column",gap:12,width:"100%",maxWidth:360}}>
+        {nameInputs.map((n,i)=><input key={i} value={n} onChange={e=>{const a=[...nameInputs];a[i]=e.target.value;setNameInputs(a);}} onKeyDown={e=>e.key==="Enter"&&confirmNames()} placeholder={`Player ${i+1} name`} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:9,padding:"12px 14px",color:"#fff",fontSize:15,outline:"none"}}/>)}
+        <button onClick={confirmNames} style={{background:"linear-gradient(90deg,#22c55e,#16a34a)",border:"none",borderRadius:10,padding:"13px",fontSize:15,fontWeight:800,color:"#fff",cursor:"pointer",marginTop:8}}>✅ Start</button>
+      </div>
+    </div>
+  );
+
+  if(phase==="formation"&&curTeam)return(
+    <div style={{...S,padding:"20px 16px 40px"}}>
+      <style>{`@keyframes shimmer{0%{background-position:0%}100%{background-position:200%}}`}</style>
+      <div style={{textAlign:"center",marginBottom:20}}>
+        <div style={{display:"inline-block",background:"linear-gradient(90deg,#f97316,#ef4444)",borderRadius:20,padding:"5px 18px",fontSize:11,fontWeight:800,letterSpacing:"1px",marginBottom:6}}>{playerNames[curPlayerIdx]}'s Turn</div>
+        <h2 style={{fontSize:22,fontWeight:900,color:"#fbbf24",margin:"4px 0"}}>Pick Your Formation</h2>
+        <p style={{color:"#475569",fontSize:11}}>Choose your tactical blueprint — 5 random options</p>
+        <TurnDots phase="formation" turnOrder={turnOrder} formationTurn={formationTurn} managerTurn={managerTurn} playerNames={playerNames}/>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10,maxWidth:460,margin:"0 auto"}}>
+        {curTeam.availFormations.map((f,i)=>(
+          <button key={i} onClick={()=>pickFormation(f)} style={{background:"rgba(255,255,255,0.04)",border:"2px solid rgba(255,255,255,0.09)",borderRadius:12,padding:"14px 18px",cursor:"pointer",color:"#fff",textAlign:"left"}}>
+            <span style={{fontSize:19,fontWeight:900,color:"#fbbf24"}}>{f.name}</span>
+            <span style={{display:"block",fontSize:10,color:"#64748b",marginTop:3}}>{f.positions.join(" · ")}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if(phase==="manager"&&curTeam)return(
+    <div style={{...S,padding:"20px 16px 40px"}}>
+      <div style={{textAlign:"center",marginBottom:18}}>
+        <div style={{display:"inline-block",background:"linear-gradient(90deg,#7c3aed,#4f46e5)",borderRadius:20,padding:"5px 18px",fontSize:11,fontWeight:800,letterSpacing:"1px",marginBottom:6}}>{playerNames[curPlayerIdx]}'s Turn</div>
+        <h2 style={{fontSize:22,fontWeight:900,color:"#fbbf24",margin:"4px 0"}}>Choose Your Manager</h2>
+        <p style={{color:"#475569",fontSize:11}}>5 random candidates — once picked, unavailable to others</p>
+        <TurnDots phase="manager" turnOrder={turnOrder} formationTurn={formationTurn} managerTurn={managerTurn} playerNames={playerNames}/>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:500,margin:"0 auto"}}>
+        {(curTeam.managerOptions||[]).map((m,i)=>(
+          <button key={i} onClick={()=>pickManager(m)} style={{background:"rgba(255,255,255,0.03)",border:"2px solid rgba(255,255,255,0.08)",borderRadius:13,padding:"14px",cursor:"pointer",color:"#fff",textAlign:"left",transition:"border-color .2s"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+              <span style={{fontSize:22}}>{m.emoji}</span>
+              <div>
+                <div style={{fontSize:15,fontWeight:900,color:"#fbbf24"}}>{m.name}</div>
+                <div style={{fontSize:9,color:"#475569"}}>{m.achievements}</div>
+              </div>
+            </div>
+            <div style={{fontSize:11,color:"#86efac",marginBottom:2}}>✅ {m.pros}</div>
+            <div style={{fontSize:11,color:"#f87171",marginBottom:2}}>❌ {m.cons}</div>
+            <div style={{fontSize:10,color:"#94a3b8",marginTop:3}}>🎯 {m.style}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if(phase==="build"&&curTeam){
+    const posOrder=getAllPos(curTeam);
+    const rem=getRemaining(curTeam);
+    const done=rem.length===0;
+    const totalSlots=teams.reduce((a,t)=>a+getAllPos(t).length,0);
+    const totalFilled=teams.reduce((a,t)=>a+Object.keys(t.players).length,0);
+    return(
+      <div style={{...S,padding:"14px 12px 50px"}}>
+        <style>{`@keyframes popIn{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}`}</style>
+        <div style={{maxWidth:480,margin:"0 auto 10px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{display:"inline-block",background:"linear-gradient(90deg,#f97316,#ef4444)",borderRadius:20,padding:"4px 14px",fontSize:11,fontWeight:800}}>{playerNames[curPlayerIdx]}'s Pick</div>
+            <div style={{fontSize:10,color:"#475569",marginTop:3}}>{curTeam.manager?.emoji} {curTeam.manager?.name} · {curTeam.formation?.name}</div>
+          </div>
+          <div style={{fontSize:11,color:"#475569"}}>{totalFilled}/{totalSlots}</div>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:5,height:5,maxWidth:480,margin:"0 auto 14px"}}>
+          <div style={{background:"linear-gradient(90deg,#22c55e,#86efac)",borderRadius:5,height:5,width:`${totalFilled/Math.max(totalSlots,1)*100}%`,transition:"width .5s"}}/>
+        </div>
+        <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap",marginBottom:14}}>
+          {teams.map((t,i)=>(
+            <div key={i} style={{opacity:i===curPlayerIdx?1:0.4,transition:"opacity .3s",textAlign:"center"}}>
+              <div style={{fontSize:9,color:i===curPlayerIdx?"#fbbf24":"#475569",fontWeight:i===curPlayerIdx?700:400,marginBottom:3}}>{playerNames[i]}</div>
+              <Pitch team={t} size={numPlayers<=3?90:60}/>
+              <div style={{fontSize:8,color:"#475569",marginTop:2}}>{Object.keys(t.players).length}/{getAllPos(t).length}</div>
+            </div>
+          ))}
+        </div>
+        {!done&&(
+          <div style={{maxWidth:480,margin:"0 auto",background:"rgba(255,255,255,0.03)",borderRadius:16,padding:"18px 14px",border:"1px solid rgba(255,255,255,0.06)"}}>
+            <div style={{display:"flex",justifyContent:"center",gap:10,marginBottom:16}}>
+              {["country","position","pick"].map((s,i)=>{
+                const steps=["country","position","pick"],d=steps.indexOf(spinStep)>i,active=spinStep===s;
+                return(<div key={s} style={{display:"flex",alignItems:"center",gap:4}}>
+                  <div style={{width:22,height:22,borderRadius:"50%",background:d?"#22c55e":active?"#fbbf24":"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:active?"#000":"#fff"}}>{d?"✓":(i+1)}</div>
+                  <span style={{fontSize:9,color:active?"#fbbf24":"#475569",textTransform:"uppercase",letterSpacing:"1px"}}>{s}</span>
+                  {i<2&&<div style={{width:14,height:1,background:"rgba(255,255,255,0.1)"}}/>}
+                </div>);
+              })}
+            </div>
+            {spinStep==="country"&&(
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14}}>
+                <div style={{fontSize:13,color:"#94a3b8",textAlign:"center"}}>Spin to reveal the <b style={{color:"#fbbf24"}}>country</b></div>
+                <div style={{width:120,height:120,borderRadius:"50%",border:"4px solid #fbbf24",background:"linear-gradient(135deg,#1e3a5f,#0d1b2a)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",transform:`rotate(${spinDeg}deg)`,transition:spinning?"transform 1.2s cubic-bezier(0.17,0.67,0.12,0.99)":"none",boxShadow:"0 0 28px rgba(251,191,36,0.2)"}}>
+                  <div style={{fontSize:28}}>🌍</div><div style={{color:"#fbbf24",fontSize:9,marginTop:2}}>{spinning?"SPINNING…":"READY"}</div>
+                </div>
+                <button onClick={spinCountry} disabled={spinning} style={{background:spinning?"#1e293b":"linear-gradient(90deg,#f97316,#ef4444)",border:"none",borderRadius:10,padding:"12px 36px",fontSize:15,fontWeight:800,color:"#fff",cursor:spinning?"default":"pointer",boxShadow:spinning?"none":"0 0 20px rgba(239,68,68,0.3)"}}>
+                  {spinning?"🌀 Spinning…":"🌍 SPIN COUNTRY"}
+                </button>
+              </div>
+            )}
+            {spinStep==="position"&&spunCountry&&(
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14}}>
+                <div style={{background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.3)",borderRadius:10,padding:"10px 20px",textAlign:"center",animation:"popIn .4s ease"}}>
+                  <div style={{fontSize:36}}>{FLAGS[spunCountry]||"🌍"}</div>
+                  <div style={{fontSize:16,fontWeight:800,color:"#fbbf24"}}>{spunCountry}</div>
+                </div>
+                <div style={{fontSize:13,color:"#94a3b8",textAlign:"center"}}>Now spin the <b style={{color:"#a78bfa"}}>position</b></div>
+                <div style={{width:120,height:120,borderRadius:"50%",border:"4px solid #a78bfa",background:"linear-gradient(135deg,#2d1b69,#0d1b2a)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",transform:`rotate(${spinDeg2}deg)`,transition:spinning?"transform 1.2s cubic-bezier(0.17,0.67,0.12,0.99)":"none",boxShadow:"0 0 28px rgba(167,139,250,0.2)"}}>
+                  <div style={{fontSize:28}}>📋</div><div style={{color:"#a78bfa",fontSize:9,marginTop:2}}>{spinning?"SPINNING…":"READY"}</div>
+                </div>
+                <button onClick={spinPosition} disabled={spinning} style={{background:spinning?"#1e293b":"linear-gradient(90deg,#7c3aed,#4f46e5)",border:"none",borderRadius:10,padding:"12px 36px",fontSize:15,fontWeight:800,color:"#fff",cursor:spinning?"default":"pointer",boxShadow:spinning?"none":"0 0 20px rgba(124,58,237,0.3)"}}>
+                  {spinning?"🌀 Spinning…":"📋 SPIN POSITION"}
+                </button>
+              </div>
+            )}
+            {spinStep==="pick"&&spunCountry&&spunPos&&(
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                <div style={{display:"flex",gap:10,alignItems:"center",justifyContent:"center",flexWrap:"wrap",animation:"popIn .4s ease"}}>
+                  <div style={{background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.3)",borderRadius:10,padding:"8px 16px",textAlign:"center"}}>
+                    <div style={{fontSize:28}}>{FLAGS[spunCountry]||"🌍"}</div>
+                    <div style={{fontSize:13,fontWeight:700,color:"#fbbf24"}}>{spunCountry}</div>
+                  </div>
+                  <div style={{fontSize:20,color:"#475569"}}>+</div>
+                  <div style={{background:"rgba(167,139,250,0.1)",border:"1px solid rgba(167,139,250,0.3)",borderRadius:10,padding:"8px 20px",textAlign:"center"}}>
+                    <PBadge pos={bp(spunPos)}/><div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>slot: {spunPos}</div>
+                  </div>
+                </div>
+                <div style={{fontSize:11,color:"#64748b",textAlign:"center"}}>Type a player name — wrong nationality auto-fills with Liga MX</div>
+                <div style={{position:"relative"}}>
+                  <input value={search} onChange={e=>{setSearch(e.target.value);setPicked(null);}} onFocus={()=>suggs.length>0&&setShowDD(true)} placeholder="🔍 Type a player name..." style={{width:"100%",background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.14)",borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+                  {showDD&&suggs.length>0&&(
+                    <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#0d1b2a",border:"1px solid rgba(255,255,255,0.14)",borderRadius:"0 0 9px 9px",zIndex:99,maxHeight:200,overflowY:"auto"}}>
+                      {suggs.map(p=><div key={p.id} onClick={()=>selectSugg(p)} style={{padding:"8px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)",cursor:"pointer",display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{fontWeight:600}}>{p.name}</span><span style={{fontSize:9,color:"#334155"}}>#{p.id}</span></div>)}
+                    </div>
+                  )}
+                </div>
+                {picked&&<div style={{background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.35)",borderRadius:9,padding:"9px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",animation:"popIn .3s ease"}}><div><div style={{fontWeight:700,fontSize:14}}>{picked.name}</div><div style={{fontSize:10,color:"#86efac"}}>#{picked.id}{picked.isLigaMX?" · Liga MX":""}</div></div><PBadge pos={bp(spunPos)}/></div>}
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={ligaMXAutoFill} style={{flex:1,background:ligaMXPlayer&&picked?.id===ligaMXPlayer?.id?"rgba(251,191,36,0.08)":"rgba(255,255,255,0.05)",border:`1px solid ${ligaMXPlayer&&picked?.id===ligaMXPlayer?.id?"rgba(251,191,36,0.3)":"rgba(255,255,255,0.1)"}`,borderRadius:8,padding:"10px",fontSize:12,color:ligaMXPlayer&&picked?.id===ligaMXPlayer?.id?"#fbbf24":"#94a3b8",cursor:"pointer"}}>
+                    {ligaMXPlayer?`🔄 ${ligaMXPlayer.name.split(" ").slice(-1)[0]}`:"🇲🇽 Liga MX Fill"}
+                  </button>
+                  <button onClick={confirmPick} disabled={!picked} style={{flex:2,background:picked?"linear-gradient(90deg,#22c55e,#16a34a)":"rgba(255,255,255,0.04)",border:"none",borderRadius:8,padding:"10px",fontSize:13,fontWeight:800,color:picked?"#fff":"#475569",cursor:picked?"pointer":"default"}}>✅ Lock In</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {done&&<div style={{textAlign:"center",padding:"24px 20px"}}><div style={{fontSize:32,marginBottom:6}}>🎉</div><div style={{fontSize:17,fontWeight:700,color:"#22c55e"}}>{playerNames[curPlayerIdx]}'s team is complete!</div><div style={{fontSize:11,color:"#475569",marginTop:4}}>Waiting for others...</div></div>}
+        {Object.keys(curTeam.players).length>0&&(
+          <div style={{maxWidth:480,margin:"14px auto 0",background:"rgba(255,255,255,0.02)",borderRadius:11,padding:"10px 12px",border:"1px solid rgba(255,255,255,0.05)"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#fbbf24",marginBottom:6}}>📋 {playerNames[curPlayerIdx]}'s Roster</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+              {posOrder.map(p=>{const pl=curTeam.players[p];if(!pl)return null;return(
+                <div key={p} style={{background:"rgba(255,255,255,0.05)",borderRadius:6,padding:"4px 8px",fontSize:10,display:"flex",alignItems:"center",gap:4}}>
+                  <PBadge pos={bp(p)}/><span style={{color:pl.isLigaMX||pl.wrongCountry?"#fcd34d":"#fff"}}>{pl.name}</span>
+                </div>
+              );})}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if(phase==="compete")return(
+    <div style={{...S,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
+      <h2 style={{fontSize:26,fontWeight:900,color:"#fbbf24",marginBottom:8}}>⚔️ All Teams Built!</h2>
+      <div style={{display:"flex",flexDirection:"column",gap:10,width:"100%",maxWidth:460,marginBottom:24}}>
+        {teams.map((t,i)=>(
+          <div key={i} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.09)",borderRadius:12,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:700,color:"#fbbf24",marginBottom:2}}>{playerNames[i]}</div>
+              <div style={{fontSize:11,color:"#64748b"}}>{t.formation?.name} · {t.manager?.emoji} {t.manager?.name}</div>
+            </div>
+            <Pitch team={t} size={72}/>
+          </div>
+        ))}
+      </div>
+      <button onClick={runCompetition} style={{background:"linear-gradient(90deg,#ef4444,#f97316)",border:"none",borderRadius:12,padding:"15px 44px",fontSize:17,fontWeight:800,color:"#fff",cursor:"pointer",boxShadow:"0 0 32px rgba(239,68,68,0.4)"}}>🏆 RUN TOURNAMENT</button>
+    </div>
+  );
+
+  if(phase==="results"&&tourneyResults){
+    const wins=Array(numPlayers).fill(0);
+    const gf=Array(numPlayers).fill(0);
+    const ga=Array(numPlayers).fill(0);
+    for(const sr of tourneyResults){
+      if(sr.series.winner==="A")wins[sr.teamA]++;else wins[sr.teamB]++;
+      for(const g of sr.series.games){
+        gf[sr.teamA]+=g.gA;ga[sr.teamA]+=g.gB;
+        gf[sr.teamB]+=g.gB;ga[sr.teamB]+=g.gA;
+      }
+    }
+    const standings=[...Array(numPlayers).keys()].sort((a,b)=>wins[b]-wins[a]||(gf[b]-ga[b])-(gf[a]-ga[a]));
+    const medals=["🥇","🥈","🥉"];
+    return(
+      <div style={{...S,padding:"20px 14px 60px"}}>
+        <h2 style={{textAlign:"center",fontSize:26,fontWeight:900,color:"#fbbf24",marginBottom:18}}>🏆 Tournament Results</h2>
+        {/* Standings */}
+        <div style={{maxWidth:480,margin:"0 auto 20px"}}>
+          <div style={{fontSize:12,color:"#64748b",fontWeight:700,marginBottom:8,letterSpacing:"1px",textTransform:"uppercase"}}>Final Standings</div>
+          {standings.map((i,rank)=>(
+            <div key={i} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 14px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:20,minWidth:28}}>{medals[rank]||`${rank+1}.`}</span>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,color:"#fbbf24"}}>{playerNames[i]}</div>
+                <div style={{fontSize:10,color:"#64748b"}}>{teams[i].formation?.name} · {teams[i].manager?.emoji} {teams[i].manager?.name}</div>
+              </div>
+              <div style={{textAlign:"right",fontSize:11}}>
+                <div style={{color:"#22c55e",fontWeight:700}}>{wins[i]}W</div>
+                <div style={{color:"#94a3b8"}}>{gf[i]}:{ga[i]}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Series results */}
+        <div style={{maxWidth:480,margin:"0 auto 20px"}}>
+          <div style={{fontSize:12,color:"#64748b",fontWeight:700,marginBottom:8,letterSpacing:"1px",textTransform:"uppercase"}}>Series Results</div>
+          {tourneyResults.map((sr,si)=>(
+            <div key={si} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,padding:"10px 14px",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <span style={{fontWeight:700,fontSize:13}}>{playerNames[sr.teamA]} <span style={{color:"#fbbf24"}}>{sr.series.wA}-{sr.series.wB}</span> {playerNames[sr.teamB]}</span>
+                <span style={{fontSize:10,color:"#475569"}}>{sr.series.winner==="A"?playerNames[sr.teamA]:playerNames[sr.teamB]} wins</span>
+              </div>
+              {sr.series.games.map((g,gi)=>(
+                <div key={gi} style={{marginBottom:4}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,fontSize:11}}>
+                    <span style={{color:"#94a3b8"}}>Game {gi+1}:</span>
+                    <span style={{fontWeight:700}}>{playerNames[sr.teamA]} {g.gA}–{g.gB} {playerNames[sr.teamB]}</span>
+                    {g.pkResult&&<span style={{color:"#fbbf24",fontSize:9}}>PK {g.pkResult.sA}-{g.pkResult.sB}</span>}
+                    <button onClick={()=>setExpandedGame(expandedGame===`${si}-${gi}`?null:`${si}-${gi}`)} style={{marginLeft:"auto",background:"none",border:"1px solid rgba(255,255,255,0.1)",borderRadius:4,padding:"2px 6px",fontSize:9,color:"#94a3b8",cursor:"pointer"}}>{expandedGame===`${si}-${gi}`?"▲":"▼"}</button>
+                  </div>
+                  {expandedGame===`${si}-${gi}`&&(
+                    <div style={{marginTop:6,paddingLeft:12,borderLeft:"2px solid rgba(255,255,255,0.1)"}}>
+                      {g.events.map((ev,ei)=>(
+                        <div key={ei} style={{fontSize:10,color:ev.type==="goal"?"#86efac":ev.type==="red"?"#f87171":"#94a3b8",marginBottom:2}}>
+                          {ev.minute}' {ev.type==="goal"?`⚽ ${ev.scorer}${ev.assist?` (${ev.assist})`:""}`:ev.type==="red"?`🟥 ${ev.player}`:""}
+                          <span style={{color:"#475569",marginLeft:4}}>{ev.team==="A"?playerNames[sr.teamA]:playerNames[sr.teamB]}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        {/* AI Analysis */}
+        <div style={{maxWidth:480,margin:"0 auto 20px"}}>
+          <div style={{fontSize:12,color:"#64748b",fontWeight:700,marginBottom:10,letterSpacing:"1px",textTransform:"uppercase"}}>📝 Tactical Analysis</div>
+          {analysisLoading?(
+            <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"20px",textAlign:"center"}}>
+              <div style={{fontSize:16,marginBottom:8}}>🤖</div>
+              <div style={{color:"#94a3b8",fontSize:13}}>Generating tactical report...</div>
+              <div style={{color:"#475569",fontSize:11,marginTop:4}}>Claude is analyzing the matchups</div>
+            </div>
+          ):analysis?(
+            <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"18px 16px"}}>
+              <div style={{color:"#e2e8f0",fontSize:12,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{analysis}</div>
+            </div>
+          ):(
+            <div style={{color:"#475569",fontSize:12,textAlign:"center"}}>Analysis unavailable</div>
+          )}
+        </div>
+        <div style={{textAlign:"center",paddingBottom:20}}>
+          <div style={{fontSize:12,color:"#475569",marginBottom:12}}>
+            {history.players.length > 0 && <span>🔒 {history.players.length} players locked from previous games</span>}
+          </div>
+          <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+            <button onClick={()=>resetGame(true)} style={{background:"linear-gradient(90deg,#7c3aed,#4f46e5)",border:"none",borderRadius:10,padding:"12px 24px",fontSize:14,fontWeight:700,color:"#fff",cursor:"pointer"}}>🔄 Draft New Squad</button>
+            <button onClick={()=>resetGame(false)} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"12px 24px",fontSize:14,fontWeight:700,color:"#94a3b8",cursor:"pointer"}}>🏠 Fresh Start</button>
+          </div>
+          <div style={{fontSize:10,color:"#475569",marginTop:8}}>Draft New Squad keeps player history locked · Fresh Start resets everything</div>
+        </div>
+      </div>
+    );
+  }
+
+  return <div style={{color:"#fff",padding:40,textAlign:"center",fontFamily:"Georgia,serif",background:"#0a0e1a",minHeight:"100vh"}}>Loading...</div>;
+}
